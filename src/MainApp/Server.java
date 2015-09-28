@@ -1,6 +1,7 @@
 package MainApp;
 
 import RMI.Constant;
+import clientModel.StaffRegister;
 
 import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
@@ -20,7 +21,7 @@ public class Server {
                     connectClientDB();
 
                 });
-                    clientThread.start();;
+                    clientThread.start();
 
     }
 
@@ -34,13 +35,16 @@ public class Server {
 
             System.out.println("Server is now Running..");
 
+          //  System.out.println(clientDB.getAdminKeyCode("wew"));
+
+
         }catch (RemoteException e){
-
             e.printStackTrace();
+            System.out.println("Server:Server.java:connectClientDB: RemoteException ");
+
         } catch (AlreadyBoundException e) {
-            e.printStackTrace();
+            System.out.println("Server:Server.java:connectClientDB: AlreadyBoundException ");
         }
-
     }
 
 
