@@ -25,17 +25,35 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private Object lock1;
     private Object lock2;
     private Object lock3;
+    private Object lock4;
+    private Object usernameLock;
 
 
     protected ClientDB() throws RemoteException{
 
         lock1 = new Object();
         lock2 = new Object();
+        lock3 = new Object();
+        lock4 = new Object();
+        usernameLock = new Object();
 
     }
 
-
+    // this is used directly by the client e.g checking database is up
     public  boolean checkConnectDB(){
+
+        try {
+            connection = DriverManager.getConnection(host,user,pass);
+
+            return  true;
+        } catch (SQLException e) {
+            System.out.println("jdbc communication link failure");
+            return false;
+        }
+    }
+
+    // this is used for server
+    public  boolean connect(){
 
         try {
             connection = DriverManager.getConnection(host,user,pass);
@@ -47,31 +65,63 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
     }
 
+    // use checkConnectDB() here
+    @Override
+    public  boolean checkDatabase() throws RemoteException, SQLException {
+
+        synchronized (lock4){
+            return checkConnectDB();
+        }
+    }
+
 
     //METHODS THAT ARE NEED TO BE SYNCRONIZED
 
     @Override
     public boolean Login(String user, String pass) throws RemoteException {
+    boolean isTrue = false;
+        synchronized (lock3){
+            connect();
+            String loginSql = "SELECT User, password from account where User = ? and password = ?";
+            String updateStatus = "UPDATE account SET status = ? WHERE User = ? and password = ?";
 
-                if (user.equals("wew") && pass.equals("wew")){
-                    System.out.println("weeew");
-                    return true;
+            try {
+                PreparedStatement ps = connection.prepareStatement(loginSql);
+                ps.setString(1,user);
+                ps.setString(2, pass);
+
+                PreparedStatement updatePS = connection.prepareStatement(updateStatus);
+                updatePS.setString(1,"Online");
+                updatePS.setString(2,user);
+                updatePS.setString(3,pass);
+
+                ResultSet rs = ps.executeQuery();
+                int affectedRow = updatePS.executeUpdate();
+
+                if (rs.next() && affectedRow == 1){
+                    isTrue = true;
                 }else {
-                    return false;
+                    isTrue = false;
                 }
+
+            } catch (SQLException e) {
+                isTrue = false;
+                e.printStackTrace();
+            }
+
+        }
+    return isTrue;
     }
 
-    @Override
-    public synchronized boolean checkDatabase() throws RemoteException, SQLException {
-        return checkConnectDB();
-    }
+
 
     @Override
     public boolean getAdminKeyCode(String keycode) throws RemoteException {
-        checkConnectDB();
+
         boolean bool = false;
 
         synchronized (lock1){
+            connect();
             String Sql = "Select KeyCode from keycode where keycode = ?";
             try {
                 PreparedStatement ps = connection.prepareStatement(Sql);
@@ -96,8 +146,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     public boolean register(StaffRegister staffRegister) throws RemoteException {
 
         synchronized (lock2){
-            checkConnectDB();
-            boolean isRegistered = false;
+            connect();
             int accountID = 0;
             int secretInfoID = 0;
 
@@ -170,6 +219,34 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         }
 
         return  isRegistered;
+    }
+
+    @Override
+    public boolean getUsername(String username) throws RemoteException {
+        boolean bool = false;
+
+        synchronized (usernameLock){
+            connect();
+            String usernameSQL = "SELECT User FROM account WHERE User = ?";
+
+            try {
+                PreparedStatement ps = connection.prepareStatement(usernameSQL);
+                ps.setString(1,username);
+
+                ResultSet rs = ps.executeQuery();
+
+                if (rs.next()){
+                    bool = true;
+                }else {
+                    bool = false;
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+        }
+
+        return bool;
     }
 }
 
