@@ -98,8 +98,16 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 ResultSet rs = ps.executeQuery();
                 int affectedRow = updatePS.executeUpdate();
 
-                if (rs.next() && affectedRow == 1){
-                    isTrue = true;
+                if (rs.next()){
+                        String username = rs.getString("User");
+                        String password = rs.getString("password");
+
+                        if (username.equals(user) && password.equals(pass) && affectedRow == 1){
+                            isTrue = true;
+                        }else {
+                            isTrue = false;
+                        }
+
                 }else {
                     isTrue = false;
                 }

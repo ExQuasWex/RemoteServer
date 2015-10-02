@@ -34,7 +34,7 @@ public class Server {
 
             System.out.println("Server is now Running..");
 
-          //System.out.println(clientDB.Login("evilgreen","123321"));
+           //System.out.println(clientDB.Login("evilgreen","123321"));
 
 
         }catch (RemoteException e){
