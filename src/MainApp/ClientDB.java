@@ -27,6 +27,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private Object lock3;
     private Object lock4;
     private Object usernameLock;
+    private Object lock5;
 
 
     protected ClientDB() throws RemoteException{
@@ -35,6 +36,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         lock2 = new Object();
         lock3 = new Object();
         lock4 = new Object();
+        lock5 = new Object();
         usernameLock = new Object();
 
     }
