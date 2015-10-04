@@ -41,7 +41,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
     }
 
-    // this is used directly by the client e.g checking database is up
+    // this is used directly by the client e.g checking database is up asd
     public  boolean checkConnectDB(){
 
         try {
