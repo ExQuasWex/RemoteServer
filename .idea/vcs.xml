@@ -5,5 +5,6 @@
     <mapping directory="$USER_HOME$/RemoteMethod" vcs="Git" />
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/RemoteServer" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/MainApp" vcs="Git" />
   </component>
 </project>
