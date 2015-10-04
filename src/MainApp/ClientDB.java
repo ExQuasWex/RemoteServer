@@ -77,7 +77,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     }
 
 
-    //METHODS THAT ARE NEED TO BE SYNCRONIZED
+    //METHODS THAT ARE NEED TO BE SYNCRONIZED asdasd
 
     @Override
     public boolean Login(String user, String pass) throws RemoteException {
