@@ -84,13 +84,14 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     boolean isTrue = false;
         synchronized (lock3){
             connect();
-            String loginSql = "SELECT User, password from account where User = ? and password = ?";
+            String loginSql = "SELECT User, password from account where User = ? and password = ? and Role = ?";
             String updateStatus = "UPDATE account SET status = ? WHERE User = ? and password = ?";
 
             try {
                 PreparedStatement ps = connection.prepareStatement(loginSql);
                 ps.setString(1,user);
                 ps.setString(2, pass);
+                ps.setString(3,"Client");
 
                 PreparedStatement updatePS = connection.prepareStatement(updateStatus);
                 updatePS.setString(1,"Online");
@@ -258,5 +259,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
         return bool;
     }
+
 }
 

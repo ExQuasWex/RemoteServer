@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$USER_HOME$/RemoteMethod/RemoteMethod.iml" filepath="$USER_HOME$/RemoteMethod/RemoteMethod.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../RemoteMethod/RemoteMethod.iml" filepath="$PROJECT_DIR$/../RemoteMethod/RemoteMethod.iml" />
       <module fileurl="file://$PROJECT_DIR$/RemoteServer.iml" filepath="$PROJECT_DIR$/RemoteServer.iml" />
     </modules>
   </component>
