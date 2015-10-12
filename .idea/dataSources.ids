@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="dataSourceStorage">
+  <data-source name="pdss" uuid="1cfd4ba5-efcf-427c-b399-0e2b17fdb549">
+    <database-info product="H2" version="1.4.189 (2015-09-13)" jdbc-version="4.0" driver-name="H2 JDBC Driver" driver-version="1.4.189 (2015-09-13)">
+      <identifier-quote-string>&quot;</identifier-quote-string>
+    </database-info>
+    <case-sensitivity plain-identifiers="lower" quoted-identifiers="lower"/>
+    <schema name="public" catalog="pdss"/>
+    <table name="account" schema="public" catalog="pdss" type="TABLE">
+      <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfMzUwRDMzMDJfRkQ4MV80MEUyXzk3NTdfRDQzQkUxMjM2OEU4KQ==" autoIncrement="true"/>
+      <column name="user" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <column name="password" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <column name="role" sqlType="varchar" precision="30" scale="0" nullable="false" jdbcType="12" def="J0NsaWVudCc="/>
+      <column name="status" sqlType="varchar" precision="30" scale="0" nullable="false" jdbcType="12" def="Jyc="/>
+      <primary-key name="CONSTRAINT_E" columns="id"/>
+      <index name="primary_key_e" unique="true" columns="id"/>
+    </table>
+    <table name="admin" schema="public" catalog="pdss" type="TABLE">
+      <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfNzNFNDcxMzNfRkI1OF80Qzg4X0FGMERfNEUwNTFEMzM5QUZDKQ==" autoIncrement="true"/>
+      <column name="name" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <column name="contact" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <column name="gender" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <column name="accountid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
+      <column name="secretinfoid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
+      <primary-key name="CONSTRAINT_3" columns="id"/>
+      <index name="primary_key_3" unique="true" columns="id"/>
+    </table>
+    <table name="barangay" schema="public" catalog="pdss" type="TABLE">
+      <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfRjYwNUMxMDhfRTc3M180NUUzX0I0ODVfMDkxODMyNTFERUU4KQ==" autoIncrement="true"/>
+      <column name="name" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <column name="unresolvepopulation" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
+      <column name="resolvepopulation" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
+      <primary-key name="CONSTRAINT_C" columns="id"/>
+      <index name="primary_key_c" unique="true" columns="id"/>
+    </table>
+    <table name="client" schema="public" catalog="pdss" type="TABLE">
+      <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfREM2RUVDNThfNzA4Ml80N0NCX0FFQ0ZfMDg0MTYyRTlDQjIzKQ==" autoIncrement="true"/>
+      <column name="name" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <column name="address" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <column name="contactno" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <column name="gender" sqlType="varchar" precision="10" scale="0" nullable="false" jdbcType="12"/>
+      <column name="totalentries" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
+      <column name="accountid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
+      <column name="secretinfoid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
+      <primary-key name="CONSTRAINT_7" columns="id"/>
+      <index name="primary_key_7" unique="true" columns="id"/>
+    </table>
+    <table name="family" schema="public" catalog="pdss" type="TABLE">
+      <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfMDY3RTU5QzFfQTdERl80NTZFX0JERUVfNjdGRTg5NkZEQzBCKQ==" autoIncrement="true"/>
+      <column name="barangayid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
+      <column name="name" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <column name="spouse" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <column name="address" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <column name="childrenno" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
+      <column name="gender" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <column name="clientid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
+      <primary-key name="CONSTRAINT_7B" columns="id"/>
+      <index name="primary_key_7b" unique="true" columns="id"/>
+    </table>
+    <table name="keycode" schema="public" catalog="pdss" type="TABLE">
+      <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfQUIzNzlBNEFfRDQ2OV80NzY2X0IzMkZfMTM4QjA1QTQ5MTZCKQ==" autoIncrement="true"/>
+      <column name="keycode" sqlType="varchar" precision="10" scale="0" nullable="false" jdbcType="12"/>
+      <column name="status" sqlType="varchar" precision="10" scale="0" nullable="false" jdbcType="12"/>
+      <primary-key name="CONSTRAINT_F" columns="id"/>
+      <index name="primary_key_f" unique="true" columns="id"/>
+    </table>
+    <table name="povertyfactors" schema="public" catalog="pdss" type="TABLE">
+      <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfRDdFRUJFNzhfNTQ4Nl80N0ExXzlBNEZfNjRDQkQzQTFCQzE3KQ==" autoIncrement="true"/>
+      <column name="familyid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
+      <column name="job" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <column name="minimumwage" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <column name="relocate" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <column name="casestatus" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <primary-key name="CONSTRAINT_D" columns="id"/>
+      <index name="primary_key_d" unique="true" columns="id"/>
+    </table>
+    <table name="secretinfo" schema="public" catalog="pdss" type="TABLE">
+      <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfNEQyOTk1RTVfNDZCQl80Q0E5X0EwNTZfMUU5MkMxRjA0QzA1KQ==" autoIncrement="true"/>
+      <column name="secretquestionid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
+      <column name="secretanswer" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <primary-key name="CONSTRAINT_C6" columns="id"/>
+      <index name="primary_key_c6" unique="true" columns="id"/>
+    </table>
+  </data-source>
+</component>
