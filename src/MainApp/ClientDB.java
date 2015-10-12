@@ -2,9 +2,8 @@ package MainApp;
 
 import RMI.RemoteMethods;
 import clientModel.StaffRegister;
+import org.h2.jdbcx.JdbcConnectionPool;
 
-import javax.naming.ldap.PagedResultsControl;
-import java.net.Socket;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.sql.*;
@@ -18,7 +17,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private boolean isRegistered;
 
     private Connection connection;
-    private final String host = "jdbc:mysql://localhost/pdss";
+    private final String host = "jdbc:h2:file:c:/pdsss/database/pdss;Mode=MySQL;LOCK_MODE=1";
     private final String user = "admin";
     private final String pass = "admin";
 
@@ -30,6 +29,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private Object lock5;
 
 
+    private static JdbcConnectionPool cp;
+
     protected ClientDB() throws RemoteException{
 
         lock1 = new Object();
@@ -38,34 +39,33 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         lock4 = new Object();
         lock5 = new Object();
         usernameLock = new Object();
+        cp = JdbcConnectionPool.create(host, user, pass);
 
     }
 
     // this is used directly by the client e.g checking database is up asd
     public  boolean checkConnectDB(){
+        boolean isconnected = false;
 
         try {
-            connection = DriverManager.getConnection(host,user,pass);
+            Connection connection = cp.getConnection();
 
-            return  true;
+            if (connection.isValid(5000)){
+                isconnected = true;
+            }else{
+                isconnected = false;
+            }
+
+            connection.close();
         } catch (SQLException e) {
-            System.out.println("jdbc communication link failure");
-            return false;
+            isconnected = false;
+            e.printStackTrace();
         }
+        return isconnected;
     }
 
     // this is used for server
-    public  boolean connect(){
 
-        try {
-            connection = DriverManager.getConnection(host,user,pass);
-            return  true;
-        } catch (SQLException e) {
-            System.out.println("jdbc communication link failure");
-            return false;
-        }
-
-    }
 
     // use checkConnectDB() here
     @Override
@@ -83,11 +83,11 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     public boolean Login(String user, String pass) throws RemoteException {
     boolean isTrue = false;
         synchronized (lock3){
-            connect();
             String loginSql = "SELECT User, password from account where User = ? and password = ?";
             String updateStatus = "UPDATE account SET status = ? WHERE User = ? and password = ?";
 
             try {
+                connection = cp.getConnection();
                 PreparedStatement ps = connection.prepareStatement(loginSql);
                 ps.setString(1,user);
                 ps.setString(2, pass);
@@ -113,7 +113,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 }else {
                     isTrue = false;
                 }
-
+                ps.close();
+                connection.close();
             } catch (SQLException e) {
                 isTrue = false;
                 e.printStackTrace();
@@ -131,9 +132,10 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         boolean bool = false;
 
         synchronized (lock1){
-            connect();
+
             String Sql = "Select KeyCode from keycode where keycode = ?";
             try {
+                connection = cp.getConnection();
                 PreparedStatement ps = connection.prepareStatement(Sql);
                 ps.setString(1, keycode);
 
@@ -144,7 +146,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 }else {
                     bool = false;
                 }
-
+                ps.close();
+                connection.close();
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -156,7 +159,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     public boolean register(StaffRegister staffRegister) throws RemoteException {
 
         synchronized (lock2){
-            connect();
+
             int accountID = 0;
             int secretInfoID = 0;
 
@@ -164,6 +167,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
             String insertAccount = "INSERT INTO account (User,password,Status) VALUES (?,?,?)";
             try {
+                connection = cp.getConnection();
                 PreparedStatement ps = connection.prepareStatement(insertAccount, Statement.RETURN_GENERATED_KEYS);
                 ps.setString(1,staffRegister.getUsername());
                 ps.setString(2,staffRegister.getPassword());
@@ -187,6 +191,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
             String insertSecurity = "INSERT INTO secretinfo (SecretQuestionID, SecretAnswer) VALUES (?,?)";
 
             try {
+                cp.getConnection();
                 PreparedStatement ps = connection.prepareStatement(insertSecurity, Statement.RETURN_GENERATED_KEYS);
                 ps.setInt(1,staffRegister.getSecretID());
                 ps.setString(2,staffRegister.getSecretAnswer());
@@ -221,10 +226,14 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 ps.executeUpdate();
 
                 isRegistered = true;
+
+                ps.close();
+                connection.close();
             } catch (SQLException e) {
                 isRegistered = false;
                 e.printStackTrace();
             }
+
 
         }
 
@@ -236,10 +245,11 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         boolean bool = false;
 
         synchronized (usernameLock){
-            connect();
+
             String usernameSQL = "SELECT User FROM account WHERE User = ?";
 
             try {
+                connection = cp.getConnection();
                 PreparedStatement ps = connection.prepareStatement(usernameSQL);
                 ps.setString(1,username);
 
@@ -250,6 +260,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 }else {
                     bool = false;
                 }
+                ps.close();
+                connection.close();
             } catch (SQLException e) {
                 e.printStackTrace();
             }

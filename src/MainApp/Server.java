@@ -1,7 +1,12 @@
 package MainApp;
 
 import RMI.Constant;
+import View.AdminFrame;
 import clientModel.StaffRegister;
+import javafx.application.Application;
+import javafx.event.EventHandler;
+import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
@@ -11,17 +16,20 @@ import java.rmi.registry.Registry;
 /**
  * Created by Didoy on 8/24/2015.
  */
-public class Server {
+public class Server extends Application {
 
 
     public  static  void main (String []argh){
 
-                Thread clientThread = new Thread(() -> {
+        Thread clientThread = new Thread(() -> {
 
-                    connectClientDB();
+            connectClientDB();
 
-                });
-                    clientThread.start();
+        });
+        clientThread.start();
+
+        Application.launch(argh);
+
     }
 
 
@@ -34,7 +42,7 @@ public class Server {
 
             System.out.println("Server is now Running..");
 
-           //System.out.println(clientDB.Login("evilgreen","123321"));
+           System.out.println(clientDB.Login("villerdex","123321"));
 
 
         }catch (RemoteException e){
@@ -47,4 +55,16 @@ public class Server {
     }
 
 
+    @Override
+    public void start(Stage primaryStage) throws Exception {
+        AdminFrame adminFrame = new AdminFrame();
+        adminFrame.show();
+
+        adminFrame.setOnCloseRequest(new EventHandler<WindowEvent>() {
+            @Override
+            public void handle(WindowEvent event) {
+                System.exit(1);
+            }
+        });
+    }
 }
