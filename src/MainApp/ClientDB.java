@@ -1,6 +1,7 @@
 package MainApp;
 
 import RMI.RemoteMethods;
+import clientModel.StaffInfo;
 import clientModel.StaffRegister;
 import org.h2.jdbcx.JdbcConnectionPool;
 
@@ -80,10 +81,14 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     //METHODS THAT ARE NEED TO BE SYNCRONIZED
 
     @Override
-    public boolean Login(String user, String pass) throws RemoteException {
+    public StaffInfo Login(String user, String pass) throws RemoteException {
+
     boolean isTrue = false;
+    StaffInfo staffInfo = null;
+
         synchronized (lock3){
-            String loginSql = "SELECT User, password from account where User = ? and password = ?";
+            int accountID = 0;
+            String loginSql = "SELECT id, User, password from account where User = ? and password = ?";
             String updateStatus = "UPDATE account SET status = ? WHERE User = ? and password = ?";
 
             try {
@@ -101,27 +106,57 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 int affectedRow = updatePS.executeUpdate();
 
                 if (rs.next()){
-                        String username = rs.getString("User");
-                        String password = rs.getString("password");
+                    String username = rs.getString("User");
+                    String password = rs.getString("password");
+                    accountID = rs.getInt("id");
 
-                        if (username.equals(user) && password.equals(pass) && affectedRow == 1){
-                            isTrue = true;
-                        }else {
-                            isTrue = false;
-                        }
+                    if (username.equals(user) && password.equals(pass) && affectedRow == 1){
+                        isTrue = true;
+                    }else{
+                        isTrue = false;
+                    }
 
                 }else {
                     isTrue = false;
                 }
+
+                if (isTrue){
+
+                    String getInfoSql = "SELECT name, address, contactno, totalentries from client WHERE accountid = ?";
+
+                    System.out.println(accountID);
+                    PreparedStatement  getPS =  connection.prepareStatement(getInfoSql);
+                    getPS.setInt(1,accountID);
+
+                    ResultSet getRS = getPS.executeQuery();
+
+                    if (getRS.next()){
+                        String name = getRS.getString("name");
+                        String address = getRS.getString("address");
+                        String contacno = getRS.getString("contactno");
+                        int totalentries = getRS.getInt("totalentries");
+                        staffInfo = new StaffInfo(true,name,user,pass,address,contacno,totalentries);
+                    }
+
+                }else {
+                    isTrue = false;
+                    staffInfo = new StaffInfo(false,null,null,null,null,null,0);
+                }
+
+
                 ps.close();
                 connection.close();
+
+
             } catch (SQLException e) {
                 isTrue = false;
+                staffInfo = new StaffInfo(false,null,null,null,null,null,0);
                 e.printStackTrace();
             }
 
         }
-    return isTrue;
+
+    return staffInfo;
     }
 
 
@@ -191,7 +226,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
             String insertSecurity = "INSERT INTO secretinfo (SecretQuestionID, SecretAnswer) VALUES (?,?)";
 
             try {
-                cp.getConnection();
                 PreparedStatement ps = connection.prepareStatement(insertSecurity, Statement.RETURN_GENERATED_KEYS);
                 ps.setInt(1,staffRegister.getSecretID());
                 ps.setString(2,staffRegister.getSecretAnswer());

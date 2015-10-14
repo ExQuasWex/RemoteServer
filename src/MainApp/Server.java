@@ -1,8 +1,8 @@
 package MainApp;
 
 import RMI.Constant;
-import View.AdminFrame;
-import clientModel.StaffRegister;
+import org.h2.jdbc.JdbcSQLException;
+import view.AdminFrame;
 import javafx.application.Application;
 import javafx.event.EventHandler;
 import javafx.stage.Stage;
@@ -42,8 +42,7 @@ public class Server extends Application {
 
             System.out.println("Server is now Running..");
 
-           System.out.println(clientDB.Login("villerdex","123321"));
-
+           //System.out.println(clientDB.Login("villerdex","123321"));
 
         }catch (RemoteException e){
             e.printStackTrace();
@@ -52,6 +51,7 @@ public class Server extends Application {
         } catch (AlreadyBoundException e) {
             System.out.println("Server:Server.java:connectClientDB: AlreadyBoundException ");
         }
+
     }
 
 
