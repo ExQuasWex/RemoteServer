@@ -88,7 +88,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
         synchronized (lock3){
             int accountID = 0;
-            String loginSql = "SELECT id, User, password from account where User = ? and password = ?";
+            String status = null;
+            String loginSql = "SELECT id, User, password, status from account where User = ? and password = ?";
             String updateStatus = "UPDATE account SET status = ? WHERE User = ? and password = ?";
 
             try {
@@ -109,6 +110,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                     String username = rs.getString("User");
                     String password = rs.getString("password");
                     accountID = rs.getInt("id");
+                    status = rs.getString("status");
 
                     if (username.equals(user) && password.equals(pass) && affectedRow == 1){
                         isTrue = true;
@@ -124,7 +126,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
                     String getInfoSql = "SELECT name, address, contactno, totalentries from client WHERE accountid = ?";
 
-                    System.out.println(accountID);
                     PreparedStatement  getPS =  connection.prepareStatement(getInfoSql);
                     getPS.setInt(1,accountID);
 
@@ -135,12 +136,12 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                         String address = getRS.getString("address");
                         String contacno = getRS.getString("contactno");
                         int totalentries = getRS.getInt("totalentries");
-                        staffInfo = new StaffInfo(true,name,user,pass,address,contacno,totalentries);
+                        staffInfo = new StaffInfo(true,accountID,status,name,user,pass,address,contacno,totalentries);
                     }
 
                 }else {
                     isTrue = false;
-                    staffInfo = new StaffInfo(false,null,null,null,null,null,0);
+                    staffInfo = new StaffInfo(false,0,null,null,null,null,null,null,0);
                 }
 
 
@@ -150,7 +151,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
             } catch (SQLException e) {
                 isTrue = false;
-                staffInfo = new StaffInfo(false,null,null,null,null,null,0);
+                staffInfo = new StaffInfo(false,0,null,null,null,null,null,null,0);
                 e.printStackTrace();
             }
 
