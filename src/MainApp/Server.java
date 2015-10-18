@@ -57,14 +57,14 @@ public class Server extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        AdminFrame adminFrame = new AdminFrame();
-        adminFrame.show();
-
-        adminFrame.setOnCloseRequest(new EventHandler<WindowEvent>() {
-            @Override
-            public void handle(WindowEvent event) {
-                System.exit(1);
-            }
-        });
+//        AdminFrame adminFrame = new AdminFrame();
+//        adminFrame.show();
+//
+//        adminFrame.setOnCloseRequest(new EventHandler<WindowEvent>() {
+//            @Override
+//            public void handle(WindowEvent event) {
+//                System.exit(1);
+//            }
+//        });
     }
 }

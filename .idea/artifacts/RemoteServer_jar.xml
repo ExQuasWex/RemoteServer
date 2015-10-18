@@ -7,7 +7,7 @@
       </element>
       <element id="module-output" name="RemoteServer" />
       <element id="module-output" name="RemoteMethod" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/../h2-1.4.189.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/h2-latest.jar" path-in-jar="/" />
     </root>
   </artifact>
 </component>

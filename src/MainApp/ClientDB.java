@@ -8,7 +8,6 @@ import org.h2.jdbcx.JdbcConnectionPool;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.sql.*;
-import java.util.Objects;
 
 /**
  * Created by Didoy on 8/24/2015.
@@ -27,7 +26,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private Object lock3;
     private Object lock4;
     private Object usernameLock;
-    private Object lock5;
+    private Object logoutLock;
 
 
     private static JdbcConnectionPool cp;
@@ -38,7 +37,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         lock2 = new Object();
         lock3 = new Object();
         lock4 = new Object();
-        lock5 = new Object();
+        logoutLock = new Object();
         usernameLock = new Object();
         cp = JdbcConnectionPool.create(host, user, pass);
 
@@ -305,5 +304,31 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
         return bool;
     }
+
+    @Override
+    public void Logout(int accountID) throws RemoteException {
+
+        String logout = "Update account set status = ? where id = ?";
+
+        synchronized (logoutLock){
+            try {
+                connection = cp.getConnection();
+
+                PreparedStatement ps = connection.prepareStatement(logout);
+                ps.setString(1,"offline");
+                ps.setInt(2,accountID);
+
+                ps.executeUpdate();
+
+                ps.close();
+                connection.close();
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+
+        }
 }
 
