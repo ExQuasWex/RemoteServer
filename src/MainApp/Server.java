@@ -44,6 +44,7 @@ public class Server extends Application {
 
            //System.out.println(clientDB.Login("villerdex","123321"));
 
+
         }catch (RemoteException e){
             e.printStackTrace();
             System.out.println("Server:Server.java:connectClientDB: RemoteException ");

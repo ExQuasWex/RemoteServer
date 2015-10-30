@@ -1,6 +1,8 @@
 package MainApp;
 
 import RMI.RemoteMethods;
+import clientModel.Family;
+import clientModel.FamilyPoverty;
 import clientModel.StaffInfo;
 import clientModel.StaffRegister;
 import org.h2.jdbcx.JdbcConnectionPool;
@@ -27,6 +29,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private Object lock4;
     private Object usernameLock;
     private Object logoutLock;
+    private Object FamilyLock;
 
 
     private static JdbcConnectionPool cp;
@@ -39,6 +42,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         lock4 = new Object();
         logoutLock = new Object();
         usernameLock = new Object();
+        FamilyLock = new Object();
         cp = JdbcConnectionPool.create(host, user, pass);
 
     }
@@ -328,7 +332,162 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
             }
         }
 
+    }
 
+    @Override
+    public boolean addFamilyInfo(Family family) throws RemoteException {
+        boolean bool= false;
+        String checkRecord = "Select name from family where name = ?";
+
+        synchronized (FamilyLock) {
+            try {
+                connection = cp.getConnection();
+
+                PreparedStatement ps = connection.prepareStatement(checkRecord);
+                ps.setString(1,family.getFamilyinfo().getName());
+
+                ResultSet rs = ps.executeQuery();
+
+                if (rs.next()){
+                    //Update
+                }else{
+                 bool =  addToBarangay(family);
+                }
+
+            } catch (SQLException e) {
+                bool = false;
+                e.printStackTrace();
+            }
         }
+
+        return bool;
+    }
+
+
+    private boolean addToBarangay(Family family){
+    boolean isValid = false;
+
+        String insertbarangay = "Insert INTO barangay (name,date,unresolvepopulation,resolvepopulation) VALUES " +
+                "(?,?,?,?)";
+        String chckBarangay = "Select id from barangay where name = ? and date = ?";
+        String updateBarangay = "Update barangay  SET Unresolvepopulation = Unresolvepopulation + 1 where id = ?";
+
+        int barangayID = 0;
+
+            try {
+                connection = cp.getConnection();
+
+                // check if barangay is already existing
+                PreparedStatement chckPs = connection.prepareStatement(chckBarangay,Statement.RETURN_GENERATED_KEYS);
+                chckPs.setString(1,family.getFamilyinfo().getBarangay());
+                chckPs.setInt(2,family.getFamilyinfo().getSurveyedYr());
+
+                ResultSet chckRs = chckPs.executeQuery();
+
+
+                if (chckRs.next()){
+                    barangayID = chckRs.getInt("id");
+
+                    PreparedStatement updatePs = connection.prepareStatement(updateBarangay,Statement.RETURN_GENERATED_KEYS);
+                    updatePs.setInt(1,barangayID);
+                    int row = updatePs.executeUpdate();
+                    //update
+
+                }else {
+                    // insert to barangay
+                    PreparedStatement barangayPS = connection.prepareStatement(insertbarangay, Statement.RETURN_GENERATED_KEYS);
+                    barangayPS.setString(1,family.getFamilyinfo().getBarangay());
+                    barangayPS.setInt(2, family.getFamilyinfo().getSurveyedYr());
+                    barangayPS.setInt(3,1);
+                    barangayPS.setInt(4,0);
+
+                    int row = barangayPS.executeUpdate();
+                    ResultSet barangayRs = barangayPS.getGeneratedKeys();
+
+                    if (row == 1&& barangayRs.next()) {
+                        barangayID = barangayRs.getInt(1);
+                    }
+                }
+
+                isValid = addFamily(family,barangayID,connection);
+
+
+            } catch (SQLException e) {
+                isValid = false;
+                e.printStackTrace();
+            }
+    return isValid;
+    }
+
+    private boolean addFamily(Family family, int barangayID, Connection connection){
+        boolean isSucess = false;
+        int familyID = 0;
+
+        String addFamilySql = "Insert INTO family (date,name,maritalstatus,age,spouse,address,childrenno,gender,yrresidency,yrissued,clientid)" +
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
+        try {
+
+            int numofChildren = family.getFamilyinfo().getNumofChildren();
+            PreparedStatement ps = connection.prepareStatement(addFamilySql, Statement.RETURN_GENERATED_KEYS);
+            ps.setString(1,family.getFamilyinfo().getInputDate());
+            ps.setString(2,family.getFamilyinfo().getName());
+            ps.setString(3,family.getFamilyinfo().getMaritalStatus());
+            ps.setString(4,family.getFamilyinfo().getAge());
+            ps.setString(5,family.getFamilyinfo().getSpouseName());
+            ps.setString(6,family.getFamilyinfo().getAddress());
+            ps.setInt(7,numofChildren);
+            ps.setString(8,family.getFamilyinfo().getGender());
+            ps.setInt(9, family.getFamilyinfo().getResidencyYr());
+            ps.setInt(10, family.getFamilyinfo().getSurveyedYr());
+            ps.setInt(11,family.getFamilyinfo().getClientID());
+
+            int row = ps.executeUpdate();
+            ResultSet rs = ps.getGeneratedKeys();
+            if (row == 1 && rs.next()){
+                familyID = rs.getInt(1);
+               isSucess = addPovertyFactors(family.getFamilypoverty(),familyID,connection);
+
+            }else{
+                isSucess = false;
+            }
+
+        } catch (SQLException e) {
+            isSucess = false;
+            e.printStackTrace();
+        }
+
+
+        return isSucess;
+    }
+
+    public boolean addPovertyFactors(FamilyPoverty familyPoverty, int familyId, Connection connection){
+        boolean isAdded = false;
+
+        String addPovertySql = "Insert Into povertyfactors (occupancy,schoolchildren,underemployed,otherincome,threshold,ownership) " +
+                "Values (?,?,?,?,?,?)";
+
+        //
+        try {
+            PreparedStatement ps = connection.prepareStatement(addPovertySql);
+            ps.setString(1,familyPoverty.getOccupancy());
+            ps.setString(2,familyPoverty.getChildreninSchool());
+            ps.setString(3,familyPoverty.getIsunderEmployed());
+            ps.setString(4,familyPoverty.getHasotherIncome());
+            ps.setString(5,familyPoverty.getIsbelow8k());
+            ps.setString(6,familyPoverty.getOwnership());
+
+            int row = ps.executeUpdate();
+                if (row == 1) {
+                    isAdded =  true;
+                }
+
+        } catch (SQLException e) {
+            isAdded = false;
+            e.printStackTrace();
+        }
+        System.out.println("sucessfully added family");
+        return isAdded;
+    }
+
 }
 

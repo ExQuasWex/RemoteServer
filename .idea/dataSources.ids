@@ -343,7 +343,7 @@
     <table name="barangay" schema="public" catalog="pdss" type="TABLE">
       <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfQTc1RDI1QkRfRDdGNl80MDNEX0E5NDZfMUY5OTM4QTQ4QkMwKQ==" autoIncrement="true"/>
       <column name="name" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
-      <column name="date" sqlType="date" precision="8" scale="0" nullable="true" jdbcType="91"/>
+      <column name="date" sqlType="integer" precision="10" scale="0" nullable="true" jdbcType="4"/>
       <column name="unresolvepopulation" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
       <column name="resolvepopulation" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
       <primary-key name="CONSTRAINT_C" columns="id"/>
@@ -364,7 +364,7 @@
     <table name="family" schema="public" catalog="pdss" type="TABLE">
       <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfOEQ1NzE5OURfOERBM180OTU5Xzg2MDJfNkMzQUZCODVDRDIxKQ==" autoIncrement="true"/>
       <column name="barangayid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
-      <column name="date" sqlType="date" precision="8" scale="0" nullable="true" jdbcType="91"/>
+      <column name="date" sqlType="varchar" precision="50" scale="0" nullable="true" jdbcType="12"/>
       <column name="name" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
       <column name="maritalstatus" sqlType="varchar" precision="50" scale="0" nullable="true" jdbcType="12"/>
       <column name="age" sqlType="varchar" precision="50" scale="0" nullable="true" jdbcType="12"/>
@@ -372,11 +372,11 @@
       <column name="address" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
       <column name="childrenno" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
       <column name="gender" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
-      <column name="yrresidency" sqlType="date" precision="8" scale="0" nullable="true" jdbcType="91"/>
-      <column name="yrissued" sqlType="date" precision="8" scale="0" nullable="true" jdbcType="91"/>
+      <column name="yrresidency" sqlType="integer" precision="10" scale="0" nullable="true" jdbcType="4"/>
+      <column name="yrissued" sqlType="integer" precision="10" scale="0" nullable="true" jdbcType="4"/>
       <column name="clientid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
       <primary-key name="CONSTRAINT_7B" columns="id"/>
-      <index name="primary_key_26" unique="true" columns="id"/>
+      <index name="primary_key_1" unique="true" columns="id"/>
     </table>
     <table name="keycode" schema="public" catalog="pdss" type="TABLE">
       <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfQ0ExRjY4RDJfOEFEQl80OEY4XzhBQTdfRDlDN0VCQjIwQkQ4KQ==" autoIncrement="true"/>
@@ -388,15 +388,14 @@
     <table name="povertyfactors" schema="public" catalog="pdss" type="TABLE">
       <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfODQyQTlBODdfODYwRl80RUNGX0EzNkJfRkQwQjUyQ0Q5OTA1KQ==" autoIncrement="true"/>
       <column name="familyid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
-      <column name="job" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
-      <column name="relocate" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <column name="occupancy" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <column name="schoolchildren" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
       <column name="underemployed" sqlType="varchar" precision="50" scale="0" nullable="true" jdbcType="12"/>
       <column name="otherincome" sqlType="varchar" precision="50" scale="0" nullable="true" jdbcType="12"/>
       <column name="threshold" sqlType="varchar" precision="50" scale="0" nullable="true" jdbcType="12"/>
       <column name="ownership" sqlType="varchar" precision="50" scale="0" nullable="true" jdbcType="12"/>
-      <column name="casestatus" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
       <primary-key name="CONSTRAINT_D" columns="id"/>
-      <index name="primary_key_365" unique="true" columns="id"/>
+      <index name="primary_key_1c" unique="true" columns="id"/>
     </table>
     <table name="secretinfo" schema="public" catalog="pdss" type="TABLE">
       <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfMUE1REVFODFfOEFGRl80MDg4X0E4RTBfREMwODY0Q0FGREZDKQ==" autoIncrement="true"/>
