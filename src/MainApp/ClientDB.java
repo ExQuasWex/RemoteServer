@@ -1,10 +1,10 @@
 package MainApp;
 
 import RMI.RemoteMethods;
-import ClientModel.Family;
-import ClientModel.FamilyPoverty;
-import ClientModel.StaffInfo;
-import ClientModel.StaffRegister;
+import clientModel.Family;
+import clientModel.FamilyPoverty;
+import clientModel.StaffInfo;
+import clientModel.StaffRegister;
 import org.h2.jdbcx.JdbcConnectionPool;
 
 import java.rmi.RemoteException;
