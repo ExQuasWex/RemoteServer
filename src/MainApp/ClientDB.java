@@ -1,7 +1,7 @@
 package MainApp;
 
 import RMI.RemoteMethods;
-import clientModel.Family;
+import clientModel.family;
 import clientModel.FamilyPoverty;
 import clientModel.StaffInfo;
 import clientModel.StaffRegister;
@@ -335,7 +335,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     }
 
     @Override
-    public boolean addFamilyInfo(Family family) throws RemoteException {
+    public boolean addFamilyInfo(family family) throws RemoteException {
         boolean bool= false;
         String checkRecord = "Select name from family where name = ?";
 
@@ -364,7 +364,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     }
 
 
-    private boolean addToBarangay(Family family){
+    private boolean addToBarangay(family family){
     boolean isValid = false;
 
         String insertbarangay = "Insert INTO barangay (name,date,unresolvepopulation,resolvepopulation) VALUES " +
@@ -419,7 +419,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     return isValid;
     }
 
-    private boolean addFamily(Family family, int barangayID, Connection connection){
+    private boolean addFamily(family family, int barangayID, Connection connection){
         boolean isSucess = false;
         int familyID = 0;
 
