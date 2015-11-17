@@ -15,7 +15,10 @@ import java.util.ArrayList;
 
 /**
  * Created by Didoy on 8/24/2015.
+ * for my degree
  */
+
+
 public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
     private boolean isRegistered;
