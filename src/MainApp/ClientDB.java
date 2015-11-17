@@ -1,15 +1,17 @@
 package MainApp;
 
 import RMI.RemoteMethods;
-import clientModel.Family;
-import clientModel.FamilyPoverty;
+import Family.Family;
+import Family.FamilyPoverty;
 import clientModel.StaffInfo;
 import clientModel.StaffRegister;
+import global.OnlineClient;
 import org.h2.jdbcx.JdbcConnectionPool;
 
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.sql.*;
+import java.util.ArrayList;
 
 /**
  * Created by Didoy on 8/24/2015.
@@ -31,8 +33,19 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private Object logoutLock;
     private Object FamilyLock;
 
+    // this list holds all the usernames who are online
+    private ArrayList<OnlineClient> onlineClientArrayList;
 
-    private static JdbcConnectionPool cp;
+    private static JdbcConnectionPool connectionPool;
+
+    private String ipAddress;
+
+    private int AccountID = 0;
+    private String status;
+    private String username;
+    private String role;
+    private String Clientpassword;
+
 
     protected ClientDB() throws RemoteException{
 
@@ -43,7 +56,10 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         logoutLock = new Object();
         usernameLock = new Object();
         FamilyLock = new Object();
-        cp = JdbcConnectionPool.create(host, user, pass);
+        connectionPool = JdbcConnectionPool.create(host, user, pass);
+
+        onlineClientArrayList = new ArrayList<OnlineClient>();
+        
 
     }
 
@@ -52,7 +68,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         boolean isconnected = false;
 
         try {
-            Connection connection = cp.getConnection();
+            Connection connection = connectionPool.getConnection();
 
             if (connection.isValid(5000)){
                 isconnected = true;
@@ -84,77 +100,67 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     //METHODS THAT ARE NEED TO BE SYNCRONIZED
 
     @Override
-    public StaffInfo Login(String user, String pass) throws RemoteException {
+    public StaffInfo Login(String user, String pass, String ip) throws RemoteException {
 
-    boolean isTrue = false;
-    StaffInfo staffInfo = null;
+
+        username = user;
+        StaffInfo staffInfo = new StaffInfo(false,0,null,null,null,null,null,null,null,0);
 
         synchronized (lock3){
-            int accountID = 0;
-            String status = null;
-            String loginSql = "SELECT id, User, password, status from account where User = ? and password = ?";
+            String loginSql = "SELECT id, User, password, status, role from account where User = ? and password = ?";
             String updateStatus = "UPDATE account SET status = ? WHERE User = ? and password = ?";
 
             try {
-                connection = cp.getConnection();
+                connection = connectionPool.getConnection();
                 PreparedStatement ps = connection.prepareStatement(loginSql);
                 ps.setString(1,user);
                 ps.setString(2, pass);
 
-                PreparedStatement updatePS = connection.prepareStatement(updateStatus);
-                updatePS.setString(1,"Online");
-                updatePS.setString(2,user);
-                updatePS.setString(3,pass);
 
+                // execute queries
                 ResultSet rs = ps.executeQuery();
-                int affectedRow = updatePS.executeUpdate();
 
+                // check if the record exist
                 if (rs.next()){
                     String username = rs.getString("User");
                     String password = rs.getString("password");
-                    accountID = rs.getInt("id");
-                    status = rs.getString("status");
 
-                    if (username.equals(user) && password.equals(pass) && affectedRow == 1){
-                        isTrue = true;
+
+                    // check if the record match
+                    if (username.equals(user) && password.equals(pass)){
+                        AccountID = rs.getInt("id");
+                        role = rs.getString("Role");
+                        status = rs.getString("Status");
+                        Clientpassword = pass;
+                        ipAddress = ip;
+
+                        // set the account status to online
+                        PreparedStatement updatePS = connection.prepareStatement(updateStatus);
+                        updatePS.setString(1,"Online");
+                        updatePS.setString(2,user);
+                        updatePS.setString(3,pass);
+                        updatePS.executeUpdate();
+
+
+                        // decide whether admin or client to return
+                                    if (role.equals("Client")){
+                                                staffInfo = getClientInformation();
+                                            }
+                                    else if (role.equals("Admin")){
+
+                                    }
+
+                    // record did not match
                     }else{
-                        isTrue = false;
                     }
-
+                // record is not existing
                 }else {
-                    isTrue = false;
                 }
-
-                if (isTrue){
-
-                    String getInfoSql = "SELECT name, address, contactno, totalentries from client WHERE accountid = ?";
-
-                    PreparedStatement  getPS =  connection.prepareStatement(getInfoSql);
-                    getPS.setInt(1,accountID);
-
-                    ResultSet getRS = getPS.executeQuery();
-
-                    if (getRS.next()){
-                        String name = getRS.getString("name");
-                        String address = getRS.getString("address");
-                        String contacno = getRS.getString("contactno");
-                        int totalentries = getRS.getInt("totalentries");
-                        staffInfo = new StaffInfo(true,accountID,status,name,user,pass,address,contacno,totalentries);
-                    }
-
-                }else {
-                    isTrue = false;
-                    staffInfo = new StaffInfo(false,0,null,null,null,null,null,null,0);
-                }
-
 
                 ps.close();
                 connection.close();
 
-
             } catch (SQLException e) {
-                isTrue = false;
-                staffInfo = new StaffInfo(false,0,null,null,null,null,null,null,0);
                 e.printStackTrace();
             }
 
@@ -162,6 +168,95 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
     return staffInfo;
     }
+
+
+
+    private StaffInfo getClientInformation(){
+        StaffInfo  staffInfo = new StaffInfo(false,0,null, null,null,null,null,null,null,0);
+
+        int x = 0;
+
+            try {
+
+                    String getInfoSql = "SELECT name, address, contactno, totalentries FROM client WHERE accountid = ?";
+
+                    PreparedStatement getPS = connection.prepareStatement(getInfoSql);
+                    getPS.setInt(1, AccountID);
+
+                    ResultSet getRS = getPS.executeQuery();
+
+                                if (getRS.next()){
+                                    String name = getRS.getString("name");
+                                    String address = getRS.getString("address");
+                                    String contacno = getRS.getString("contactno");
+                                    int totalentries = getRS.getInt("totalentries");
+
+                                                    if (onlineClientArrayList.size() == 0){
+                                                                    staffInfo.setAccountExist(true);
+                                                                    staffInfo.setAccountID(AccountID);
+                                                                    staffInfo.setStatus("offline");
+                                                                    staffInfo.setRole(role);
+                                                                    staffInfo.setName(name);
+                                                                    staffInfo.setUsername(username);
+                                                                    staffInfo.setPassword(Clientpassword);
+                                                                    staffInfo.setAddress(address);
+                                                                    staffInfo.setContact(contacno);
+                                                                    staffInfo.setEntries(totalentries);
+
+                                                                    // add this account to list
+                                                                    OnlineClient onlineClient = new OnlineClient(username,ipAddress);
+                                                                    onlineClientArrayList.add(onlineClient);
+                                                                    System.out.println("first online");
+
+
+                                                    }else {
+                                                                while (x <= onlineClientArrayList.size()){
+                                                                    OnlineClient client  = onlineClientArrayList.get(x);
+                                                                            if (client.getUsername().equals(username) && status.equals("Online")){
+
+                                                                                // indicate that client is already online
+                                                                                System.out.println(client.getUsername() + " is already Online");
+                                                                                staffInfo.setStatus("Online");
+
+                                                                            }else{
+
+                                                                                staffInfo.setAccountExist(true);
+                                                                                staffInfo.setAccountID(AccountID);
+                                                                                staffInfo.setStatus("offline");
+                                                                                staffInfo.setRole(role);
+                                                                                staffInfo.setName(name);
+                                                                                staffInfo.setUsername(username);
+                                                                                staffInfo.setPassword(Clientpassword);
+                                                                                staffInfo.setAddress(address);
+                                                                                staffInfo.setContact(contacno);
+                                                                                staffInfo.setEntries(totalentries);
+
+                                                                                // add this to client list
+                                                                                OnlineClient onlineClient = new OnlineClient(username,ipAddress);
+                                                                                onlineClientArrayList.add(onlineClient);
+                                                                                System.out.println("Successfully Login");
+                                                                            }
+
+                                                                    x++;
+                                                                }
+
+                                                    }
+
+                                }
+
+                                else {
+                                    staffInfo = new StaffInfo(false,0,null,null,null,null,null,null,null,0);
+
+                                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+            return staffInfo;
+        }
+
+
 
 
 
@@ -174,7 +269,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
             String Sql = "Select KeyCode from keycode where keycode = ?";
             try {
-                connection = cp.getConnection();
+                connection = connectionPool.getConnection();
                 PreparedStatement ps = connection.prepareStatement(Sql);
                 ps.setString(1, keycode);
 
@@ -206,7 +301,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
             String insertAccount = "INSERT INTO account (User,password,Status) VALUES (?,?,?)";
             try {
-                connection = cp.getConnection();
+                connection = connectionPool.getConnection();
                 PreparedStatement ps = connection.prepareStatement(insertAccount, Statement.RETURN_GENERATED_KEYS);
                 ps.setString(1,staffRegister.getUsername());
                 ps.setString(2,staffRegister.getPassword());
@@ -287,7 +382,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
             String usernameSQL = "SELECT User FROM account WHERE User = ?";
 
             try {
-                connection = cp.getConnection();
+                connection = connectionPool.getConnection();
                 PreparedStatement ps = connection.prepareStatement(usernameSQL);
                 ps.setString(1,username);
 
@@ -316,7 +411,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
         synchronized (logoutLock){
             try {
-                connection = cp.getConnection();
+                connection = connectionPool.getConnection();
 
                 PreparedStatement ps = connection.prepareStatement(logout);
                 ps.setString(1,"offline");
@@ -341,7 +436,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
         synchronized (FamilyLock) {
             try {
-                connection = cp.getConnection();
+                connection = connectionPool.getConnection();
 
                 PreparedStatement ps = connection.prepareStatement(checkRecord);
                 ps.setString(1,family.getFamilyinfo().getName());
@@ -375,7 +470,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         int barangayID = 0;
 
             try {
-                connection = cp.getConnection();
+                connection = connectionPool.getConnection();
 
                 // check if barangay is already existing
                 PreparedStatement chckPs = connection.prepareStatement(chckBarangay,Statement.RETURN_GENERATED_KEYS);
@@ -485,7 +580,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
             isAdded = false;
             e.printStackTrace();
         }
-        System.out.println("sucessfully added family");
+        System.out.println("sucessfully added Family");
         return isAdded;
     }
 
