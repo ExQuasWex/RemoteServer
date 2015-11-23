@@ -1,4 +1,4 @@
-package MainApp;
+package MainApp.ClientSide;
 
 import RMI.RemoteMethods;
 import Family.Family;
@@ -37,7 +37,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private Object FamilyLock;
 
     // this list holds all the usernames who are online
-    private ArrayList<OnlineClient> onlineClientArrayList;
+    private OnlineClientArrayList onlineClientArrayList;
 
     private static JdbcConnectionPool connectionPool;
 
@@ -50,7 +50,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private String Clientpassword;
 
 
-    protected ClientDB() throws RemoteException{
+    public ClientDB() throws RemoteException{
 
         lock1 = new Object();
         lock2 = new Object();
@@ -61,7 +61,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         FamilyLock = new Object();
         connectionPool = JdbcConnectionPool.create(host, user, pass);
 
-        onlineClientArrayList = new ArrayList<OnlineClient>();
+        onlineClientArrayList = new OnlineClientArrayList();
         
 
     }
@@ -123,7 +123,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 // execute queries
                 ResultSet rs = ps.executeQuery();
 
-                // check if the record exist
+                //  the record exist
                 if (rs.next()){
                     String username = rs.getString("User");
                     String password = rs.getString("password");
@@ -188,7 +188,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
                     ResultSet getRS = getPS.executeQuery();
 
-                                if (getRS.next()){
+                    getRS.next();
                                     String name = getRS.getString("name");
                                     String address = getRS.getString("address");
                                     String contacno = getRS.getString("contactno");
@@ -220,8 +220,10 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                                                                                 // indicate that client is already online
                                                                                 System.out.println(client.getUsername() + " is already Online");
                                                                                 staffInfo.setStatus("Online");
+                                                                                return staffInfo;
 
                                                                             }else{
+                                                                                // if the username is not existing in the list
 
                                                                                 staffInfo.setAccountExist(true);
                                                                                 staffInfo.setAccountID(AccountID);
@@ -244,13 +246,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                                                                 }
 
                                                     }
-
-                                }
-
-                                else {
-                                    staffInfo = new StaffInfo(false,0,null,null,null,null,null,null,null,0);
-
-                                }
 
             } catch (SQLException e) {
                 e.printStackTrace();

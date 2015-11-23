@@ -11,7 +11,7 @@
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/../h2-1.4.189.jar!/" />
+          <root url="jar://$USER_HOME$/h2-latest.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />

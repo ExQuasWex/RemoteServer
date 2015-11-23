@@ -1,12 +1,9 @@
 package MainApp;
 
+import MainApp.ClientSide.ClientDB;
 import RMI.Constant;
-import org.h2.jdbc.JdbcSQLException;
-import view.AdminFrame;
 import javafx.application.Application;
-import javafx.event.EventHandler;
 import javafx.stage.Stage;
-import javafx.stage.WindowEvent;
 
 import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
@@ -40,9 +37,10 @@ public class Server extends Application {
             Registry reg = LocateRegistry.createRegistry(Constant.Remote_port);
             reg.bind(Constant.Remote_ID,clientDB);
 
+
             System.out.println("Server is now Running..");
 
-            //System.out.println(clientDB.Login("villerdexz","123321",""));
+           //clientDB.Login("villerdexz","123321","");
 
 
         }catch (RemoteException e){
