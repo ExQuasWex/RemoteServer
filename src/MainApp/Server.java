@@ -1,5 +1,6 @@
 package MainApp;
 
+import MainApp.AdminServer.AdminDB;
 import MainApp.ClientSide.ClientDB;
 import RMI.Constant;
 import javafx.application.Application;
@@ -36,6 +37,10 @@ public class Server extends Application {
             ClientDB clientDB = new ClientDB();
             Registry reg = LocateRegistry.createRegistry(Constant.Remote_port);
             reg.bind(Constant.Remote_ID,clientDB);
+
+            AdminDB adminserver = new AdminDB();
+            Registry reg2 = LocateRegistry.createRegistry(Constant.Adminport);
+            reg2.bind(Constant.RMIAdminID, adminserver);
 
 
             System.out.println("Server is now Running..");

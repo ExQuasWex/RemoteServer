@@ -11,7 +11,6 @@ import org.h2.jdbcx.JdbcConnectionPool;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.sql.*;
-import java.util.ArrayList;
 
 /**
  * Created by Didoy on 8/24/2015.
@@ -47,7 +46,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private String status;
     private String username;
     private String role;
-    private String Clientpassword;
+    private String globalPassword;
 
 
     public ClientDB() throws RemoteException{
@@ -62,11 +61,10 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         connectionPool = JdbcConnectionPool.create(host, user, pass);
 
         onlineClientArrayList = new OnlineClientArrayList();
-        
 
     }
 
-    // this is used directly by the client e.g checking database is up asd
+    // this is used directly by the client e.g checking database is up
     public  boolean checkConnectDB(){
         boolean isconnected = false;
 
@@ -87,10 +85,9 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         return isconnected;
     }
 
-    // this is used for server
 
 
-    // use checkConnectDB() here
+    // this is used by the server
     @Override
     public  boolean checkDatabase() throws RemoteException, SQLException {
 
@@ -134,7 +131,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                         AccountID = rs.getInt("id");
                         role = rs.getString("Role");
                         status = rs.getString("Status");
-                        Clientpassword = pass;
+                        globalPassword = pass;
                         ipAddress = ip;
 
                         // set the account status to online
@@ -150,7 +147,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                                                 staffInfo = getClientInformation();
                                             }
                                     else if (role.equals("Admin")){
-
+                                                staffInfo = getAdminInfo();
                                     }
 
                     // record did not match
@@ -172,6 +169,41 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     return staffInfo;
     }
 
+    private StaffInfo getAdminInfo(){
+        StaffInfo  staffInfo = new StaffInfo(false,0,null, null,null,null,null,null,null,0);
+
+        try {
+                    connection = connectionPool.getConnection();
+
+                    String sql = "Select name,contact from admin where accountId = ?";
+
+                    PreparedStatement ps = connection.prepareStatement(sql);
+                    ps.setInt(1, AccountID);
+
+                    ResultSet rs = ps.executeQuery();
+                    rs.next();
+
+                    String name = rs.getString("Name");
+                    String contact = rs.getString("Contact");
+
+                                staffInfo.setAccountExist(true);
+                                staffInfo.setAccountID(AccountID);
+                                staffInfo.setStatus("offline");
+                                staffInfo.setRole(role);
+                                staffInfo.setName(name);
+                                staffInfo.setUsername(username);
+                                staffInfo.setPassword(globalPassword);
+                                staffInfo.setAddress("");
+                                staffInfo.setContact(contact);
+
+            System.out.println("successfully login ass admin");
+
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+
+        return staffInfo;
+    }
 
 
     private StaffInfo getClientInformation(){
@@ -194,14 +226,14 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                                     String contacno = getRS.getString("contactno");
                                     int totalentries = getRS.getInt("totalentries");
 
-                                                    if (onlineClientArrayList.size() == 0){
+                                                    if (onlineClientArrayList.isEmpty()){
                                                                     staffInfo.setAccountExist(true);
                                                                     staffInfo.setAccountID(AccountID);
                                                                     staffInfo.setStatus("offline");
                                                                     staffInfo.setRole(role);
                                                                     staffInfo.setName(name);
                                                                     staffInfo.setUsername(username);
-                                                                    staffInfo.setPassword(Clientpassword);
+                                                                    staffInfo.setPassword(globalPassword);
                                                                     staffInfo.setAddress(address);
                                                                     staffInfo.setContact(contacno);
                                                                     staffInfo.setEntries(totalentries);
@@ -215,6 +247,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                                                     }else {
                                                                 while (x <= onlineClientArrayList.size()){
                                                                     OnlineClient client  = onlineClientArrayList.get(x);
+                                                                    System.out.println(client.getUsername());
+                                                                    System.out.println(status);
                                                                             if (client.getUsername().equals(username) && status.equals("Online")){
 
                                                                                 // indicate that client is already online
@@ -231,7 +265,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                                                                                 staffInfo.setRole(role);
                                                                                 staffInfo.setName(name);
                                                                                 staffInfo.setUsername(username);
-                                                                                staffInfo.setPassword(Clientpassword);
+                                                                                staffInfo.setPassword(globalPassword);
                                                                                 staffInfo.setAddress(address);
                                                                                 staffInfo.setContact(contacno);
                                                                                 staffInfo.setEntries(totalentries);
@@ -240,6 +274,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                                                                                 OnlineClient onlineClient = new OnlineClient(username,ipAddress);
                                                                                 onlineClientArrayList.add(onlineClient);
                                                                                 System.out.println("Successfully Login");
+
                                                                             }
 
                                                                     x++;
@@ -253,9 +288,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
             return staffInfo;
         }
-
-
-
 
 
     @Override
@@ -403,8 +435,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     }
 
     @Override
-    public void Logout(int accountID) throws RemoteException {
-
+    public void Logout(int accountID, String username) throws RemoteException {
         String logout = "Update account set status = ? where id = ?";
 
         synchronized (logoutLock){
@@ -419,6 +450,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
                 ps.close();
                 connection.close();
+
+                onlineClientArrayList.removeUserToList(username);
 
             } catch (SQLException e) {
                 e.printStackTrace();

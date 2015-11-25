@@ -17,13 +17,15 @@ import java.util.ArrayList;
 public class OnlineClientArrayList extends ArrayList<OnlineClient> implements Runnable {
 
     private  TimedRMIclientSocketFactory csf;
-    private         int x = 0;
+    private  int x = 0;
+    private Registry reg;
+    private Thread thread;
 
     public OnlineClientArrayList() throws RemoteException {
 
          csf = new TimedRMIclientSocketFactory(6000);
 
-        Thread thread = new Thread(this){
+         thread = new Thread(this){
         };
 
 
@@ -54,43 +56,48 @@ public class OnlineClientArrayList extends ArrayList<OnlineClient> implements Ru
             Thread.sleep(5000);
             System.out.println("Online size: " + size());
         }else {
+            Thread.sleep(5000);
+            System.out.println("Online size: " + size());
+            for (OnlineClient client : this){
+                try {
+                    System.setProperty("java.rmi.server.hostname", client.getIpaddress());
+                    Registry reg = LocateRegistry.getRegistry(client.getIpaddress(), Constant.ClientPort,csf);
 
-                    while ( x <= size() ) {
-                        Thread.sleep(5000);
-                        OnlineClient client = get(x);
-                        System.out.println("Online size: " + size());
-
-
-
-                                        try {
-                                            System.setProperty("java.rmi.server.hostname", client.getIpaddress());
-                                            Registry reg = LocateRegistry.getRegistry(client.getIpaddress(), Constant.ClientPort,csf);
-
-                                            ClientInterface Ci = (ClientInterface) reg.lookup(Constant.Remote_ID);
-                                            Ci.imAlive();
+                    ClientInterface Ci = (ClientInterface) reg.lookup(Constant.Remote_ID);
+                    Ci.imAlive();
 
 
-                                        } catch (RemoteException e) {
+                } catch (RemoteException e) {
 
-                                            e.printStackTrace();
-                                            remove(client);
-                                            System.out.println(client.getUsername() + " is Now offline");
+                    e.printStackTrace();
+                    remove(client);
+                    System.out.println(client.getUsername() + " is Now offline");
 
-                                        } catch (NotBoundException e) {
-                                            e.printStackTrace();
-                                        }
-
-
-                                        if (x == size()-1){
-                                            x = 0;
-                                        }else {
-                                            System.out.println("X++");
-                                            x++;
-                                        }
-                    }
+                } catch (NotBoundException e) {
+                    e.printStackTrace();
+                }
+            }
 
         }
 
 
     }
+
+    public void removeUserToList(String username){
+        int ctr = 0;
+        OnlineClient client;
+
+        while (ctr <= size()){
+            client = get(ctr);
+            System.out.println("Size: " + size());
+            System.out.println("logout: " + client.getUsername());
+                    if (client.getUsername().equals(username)){
+                       remove(client);
+                    }
+            ctr++;
+        }
+
+    }
+
+
 }
