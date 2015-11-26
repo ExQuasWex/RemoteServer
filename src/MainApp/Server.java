@@ -42,7 +42,6 @@ public class Server extends Application {
             Registry reg2 = LocateRegistry.createRegistry(Constant.Adminport);
             reg2.bind(Constant.RMIAdminID, adminserver);
 
-
             System.out.println("Server is now Running..");
 
            //clientDB.Login("villerdexz","123321","");

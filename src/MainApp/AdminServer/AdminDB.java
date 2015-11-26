@@ -50,7 +50,8 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
                     try {
                         connection = connectionPool.getConnection();
-                        String sql = "Select name, date, unresolvepopulation from barangay";
+                        //  Select name, date,  SUM(unresolvepopulation) from barangay where date = 2014 GROUP BY name,date
+                        String sql = "  Select name, date,  SUM(unresolvepopulation) as total from barangay GROUP BY name,date";
                         PreparedStatement ps = connection.prepareStatement(sql);
                         ResultSet rs = ps.executeQuery();
 
@@ -58,7 +59,7 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                         while (rs.next()){
                             String barangayName = rs.getString("name");
                             int date = rs.getInt("date");
-                            int UnresPopu = rs.getInt("unresolvepopulation");
+                            int UnresPopu = rs.getInt("total");
 
                             BarangayData bd = new BarangayData(barangayName,UnresPopu);
                             barangayDataList.add(bd);
