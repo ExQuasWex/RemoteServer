@@ -22,7 +22,6 @@ import java.util.ArrayList;
  */
 public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
-    private ArrayList barangayDataList;
     private Object lock1;
 
     private Connection connection;
@@ -34,7 +33,6 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
     public AdminDB() throws RemoteException {
 
-                barangayDataList = new ArrayList();
                 lock1 = new Object();
                 connectionPool = JdbcConnectionPool.create(host, user, pass);
 
@@ -43,6 +41,7 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
     @Override
     public ArrayList getBarangayData() throws RemoteException {
+        ArrayList<BarangayData>  barangayDataList= new ArrayList<BarangayData>();
         int size = 0;
         int ctr = 0;
 

@@ -31,6 +31,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private Object lock2;
     private Object lock3;
     private Object lock4;
+    private Object updateStaffLock;
     private Object usernameLock;
     private Object logoutLock;
     private Object FamilyLock;
@@ -85,7 +86,45 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         return isconnected;
     }
 
+    @Override
+    public boolean updateStaffInfo(StaffInfo staffInfo) throws RemoteException {
+        boolean isUpdated = false;
+        String sqlAccount = "Update account set user = ?, paassword = ? where id = ?";
+        String sqlStaffInfo = "Update client set name=?,  address = ?, contactno =?,  accountid =?";
 
+        synchronized (updateStaffLock){
+                        try {
+                            connection = connectionPool.getConnection();
+                            PreparedStatement ps = connection.prepareStatement(sqlAccount);
+
+                            ps.setString(1, staffInfo.getUsername());
+                            ps.setString(2, staffInfo.getPassword());
+
+                            PreparedStatement psStaff = connection.prepareStatement(sqlStaffInfo);
+
+                            psStaff.setString(1, staffInfo.getName());
+                            psStaff.setString(2, staffInfo.getAddress());
+                            psStaff.setString(3, staffInfo.getContact());
+                            psStaff.setInt(4, staffInfo.getAccountID());
+
+                            // execution
+                            int affectedRowPS = ps.executeUpdate();
+                            int affectedEowpsStaff = ps.executeUpdate();
+
+                            if (affectedRowPS == 1 && affectedEowpsStaff == 1){
+                                isUpdated =   true;
+                            }else {
+                                isUpdated =   false;
+                            }
+
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                        }
+             }
+
+
+        return isUpdated;
+    }
 
     // this is used by the server
     @Override
@@ -152,9 +191,12 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
                     // record did not match
                     }else{
+                        System.out.println("exlse1");
                     }
                 // record is not existing
                 }else {
+                    System.out.println("exlse");
+
                 }
 
                 ps.close();
@@ -242,7 +284,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                                                                     OnlineClient onlineClient = new OnlineClient(username,ipAddress);
                                                                     onlineClientArrayList.add(onlineClient);
                                                                     System.out.println("first online");
-
+                                                                    return staffInfo;
 
                                                     }else {
                                                                 while (x <= onlineClientArrayList.size()){

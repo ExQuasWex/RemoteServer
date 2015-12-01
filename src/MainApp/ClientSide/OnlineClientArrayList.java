@@ -14,7 +14,7 @@ import java.util.ArrayList;
 /**
  * Created by reiner on 11/23/2015.
  */
-public class OnlineClientArrayList extends ArrayList<OnlineClient> implements Runnable {
+class OnlineClientArrayList extends ArrayList<OnlineClient> implements Runnable {
 
     private  TimedRMIclientSocketFactory csf;
     private  int x = 0;
@@ -34,13 +34,20 @@ public class OnlineClientArrayList extends ArrayList<OnlineClient> implements Ru
 
     }
 
+    protected void start(){
+
+    }
 
     @Override
     public void run() {
 
         try {
             while (true){
+                Thread.sleep(1000);
+                System.out.println("starting thread");
                 checkOnlines();
+                System.out.println("thread end .. ");
+
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -53,30 +60,29 @@ public class OnlineClientArrayList extends ArrayList<OnlineClient> implements Ru
 
 
         if (isEmpty()){
-            Thread.sleep(5000);
             System.out.println("Online size: " + size());
         }else {
-            Thread.sleep(5000);
             System.out.println("Online size: " + size());
-            for (OnlineClient client : this){
-                try {
-                    System.setProperty("java.rmi.server.hostname", client.getIpaddress());
-                    Registry reg = LocateRegistry.getRegistry(client.getIpaddress(), Constant.ClientPort,csf);
+                for (OnlineClient client : this){
+                            try {
+                                System.setProperty("java.rmi.server.hostname", client.getIpaddress());
+                                Registry reg = LocateRegistry.getRegistry(client.getIpaddress(), Constant.ClientPort,csf);
 
-                    ClientInterface Ci = (ClientInterface) reg.lookup(Constant.Remote_ID);
-                    Ci.imAlive();
+                                ClientInterface Ci = (ClientInterface) reg.lookup(Constant.Remote_ID);
+                                Ci.imAlive();
 
 
-                } catch (RemoteException e) {
+                            } catch (RemoteException e) {
 
-                    e.printStackTrace();
-                    remove(client);
-                    System.out.println(client.getUsername() + " is Now offline");
+                                e.printStackTrace();
+                                remove(client);
+                                System.out.println(client.getUsername() + " is Now offline");
+                                checkOnlines();
 
-                } catch (NotBoundException e) {
-                    e.printStackTrace();
+                            } catch (NotBoundException e) {
+                                e.printStackTrace();
+                            }
                 }
-            }
 
         }
 
