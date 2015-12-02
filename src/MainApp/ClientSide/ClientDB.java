@@ -59,6 +59,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         logoutLock = new Object();
         usernameLock = new Object();
         FamilyLock = new Object();
+        updateStaffLock = new Object();
         connectionPool = JdbcConnectionPool.create(host, user, pass);
 
         onlineClientArrayList = new OnlineClientArrayList();
@@ -89,16 +90,18 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     @Override
     public boolean updateStaffInfo(StaffInfo staffInfo) throws RemoteException {
         boolean isUpdated = false;
-        String sqlAccount = "Update account set user = ?, paassword = ? where id = ?";
+        String sqlAccount = "Update account set user = ?, password = ? where id = ?";
         String sqlStaffInfo = "Update client set name=?,  address = ?, contactno =?,  accountid =?";
 
         synchronized (updateStaffLock){
                         try {
+                            System.out.println("updatingg .... ");
                             connection = connectionPool.getConnection();
                             PreparedStatement ps = connection.prepareStatement(sqlAccount);
 
                             ps.setString(1, staffInfo.getUsername());
                             ps.setString(2, staffInfo.getPassword());
+                            ps.setInt(3, staffInfo.getAccountID());
 
                             PreparedStatement psStaff = connection.prepareStatement(sqlStaffInfo);
 
@@ -118,6 +121,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                             }
 
                         } catch (SQLException e) {
+                            isUpdated =   false;
                             e.printStackTrace();
                         }
              }

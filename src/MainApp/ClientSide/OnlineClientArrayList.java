@@ -44,10 +44,8 @@ class OnlineClientArrayList extends ArrayList<OnlineClient> implements Runnable 
         try {
             while (true){
                 Thread.sleep(1000);
-                System.out.println("starting thread");
                 checkOnlines();
-                System.out.println("thread end .. ");
-
+                System.out.println("Online size: " + size());
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -60,9 +58,7 @@ class OnlineClientArrayList extends ArrayList<OnlineClient> implements Runnable 
 
 
         if (isEmpty()){
-            System.out.println("Online size: " + size());
         }else {
-            System.out.println("Online size: " + size());
                 for (OnlineClient client : this){
                             try {
                                 System.setProperty("java.rmi.server.hostname", client.getIpaddress());
