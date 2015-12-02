@@ -43,7 +43,7 @@ class OnlineClientArrayList extends ArrayList<OnlineClient> implements Runnable 
 
         try {
             while (true){
-                Thread.sleep(1000);
+                Thread.sleep(5000);
                 checkOnlines();
                 System.out.println("Online size: " + size());
             }
