@@ -10,6 +10,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.Iterator;
 
 /**
  * Created by reiner on 11/23/2015.
@@ -56,10 +57,33 @@ class OnlineClientArrayList extends ArrayList<OnlineClient> implements Runnable 
 
     private void checkOnlines() throws InterruptedException {
 
-
         if (isEmpty()){
         }else {
-                for (OnlineClient client : this){
+            Iterator ite = iterator();
+            while (ite.hasNext()){
+                OnlineClient client = (OnlineClient) ite.next();
+                System.out.println(client.getUsername());
+
+                try {
+                    System.setProperty("java.rmi.server.hostname", client.getIpaddress());
+                    Registry reg = LocateRegistry.getRegistry(client.getIpaddress(), Constant.ClientPort,csf);
+
+                    ClientInterface Ci = (ClientInterface) reg.lookup(Constant.Remote_ID);
+                    Ci.imAlive();
+
+
+                } catch (RemoteException e) {
+                    ite.remove();
+                    System.out.println(client.getUsername() + " is Now offline");
+                    e.printStackTrace();
+
+
+                } catch (NotBoundException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        /*    for (OnlineClient client : this){
                             try {
                                 System.setProperty("java.rmi.server.hostname", client.getIpaddress());
                                 Registry reg = LocateRegistry.getRegistry(client.getIpaddress(), Constant.ClientPort,csf);
@@ -78,7 +102,7 @@ class OnlineClientArrayList extends ArrayList<OnlineClient> implements Runnable 
                             } catch (NotBoundException e) {
                                 e.printStackTrace();
                             }
-                }
+                }*/
 
         }
 

@@ -494,8 +494,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
                 ps.executeUpdate();
 
-                System.out.println("half logout");
-
                 ps.close();
                 connection.close();
 
