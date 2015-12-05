@@ -88,7 +88,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     }
 
     @Override
-    public boolean updateStaffInfo(StaffInfo staffInfo) throws RemoteException {
+    public boolean updateStaffInfo(StaffInfo staffInfo, String oldUsername) throws RemoteException {
         boolean isUpdated = false;
         String sqlAccount = "Update account set user = ?, password = ? where id = ?";
         String sqlStaffInfo = "Update client set name=?,  address = ?, contactno =?,  accountid =?";
@@ -115,7 +115,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                             int affectedEowpsStaff = ps.executeUpdate();
 
                             if (affectedRowPS == 1 && affectedEowpsStaff == 1){
-                                isUpdated =   true;
+                                isUpdated = onlineClientArrayList.updateUsername(oldUsername, staffInfo.getUsername());
                             }else {
                                 isUpdated =   false;
                             }

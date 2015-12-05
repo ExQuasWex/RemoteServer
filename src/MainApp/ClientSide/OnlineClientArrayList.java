@@ -83,31 +83,26 @@ class OnlineClientArrayList extends ArrayList<OnlineClient> implements Runnable 
                 }
 
             }
-        /*    for (OnlineClient client : this){
-                            try {
-                                System.setProperty("java.rmi.server.hostname", client.getIpaddress());
-                                Registry reg = LocateRegistry.getRegistry(client.getIpaddress(), Constant.ClientPort,csf);
-
-                                ClientInterface Ci = (ClientInterface) reg.lookup(Constant.Remote_ID);
-                                Ci.imAlive();
-
-
-                            } catch (RemoteException e) {
-
-                                e.printStackTrace();
-                                remove(client);
-                                System.out.println(client.getUsername() + " is Now offline");
-                                checkOnlines();
-
-                            } catch (NotBoundException e) {
-                                e.printStackTrace();
-                            }
-                }*/
 
         }
 
 
     }
+
+    public boolean updateUsername(String oldUsername, String newUsername){
+
+        Iterator iterator = iterator();
+            while (iterator.hasNext()){
+                OnlineClient client = (OnlineClient) iterator.next();
+
+                    if (client.getUsername().equals(oldUsername)){
+                        client.setUsername(newUsername);
+                        return true;
+                    }
+            }
+        return false;
+    }
+
 
     public void removeUserToList(String username){
         int ctr = 0;
