@@ -3,14 +3,20 @@ package MainApp.ClientSide;
 import RMI.RemoteMethods;
 import Family.Family;
 import Family.FamilyPoverty;
+import Family.FamilyInfo;
+
 import clientModel.StaffInfo;
 import clientModel.StaffRegister;
 import global.OnlineClient;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import org.h2.jdbcx.JdbcConnectionPool;
 
+import java.io.FileOutputStream;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.sql.*;
+import java.util.ArrayList;
 
 /**
  * Created by Didoy on 8/24/2015.
@@ -35,6 +41,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private Object usernameLock;
     private Object logoutLock;
     private Object FamilyLock;
+    private Object searchLock;
 
     // this list holds all the usernames who are online
     private OnlineClientArrayList onlineClientArrayList;
@@ -48,6 +55,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private String username;
     private String role;
     private String globalPassword;
+    private static ArrayList searchList;
 
 
     public ClientDB() throws RemoteException{
@@ -60,6 +68,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         usernameLock = new Object();
         FamilyLock = new Object();
         updateStaffLock = new Object();
+        searchLock = new Object();
         connectionPool = JdbcConnectionPool.create(host, user, pass);
 
         onlineClientArrayList = new OnlineClientArrayList();
@@ -128,6 +137,120 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
 
         return isUpdated;
+    }
+
+    @Override
+    public ArrayList searchedList(String name) throws RemoteException {
+        searchList = new ArrayList<>();
+        synchronized (searchLock){
+                    Thread thread = new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            searchList = getSearchList(name);
+
+                        }
+                    });
+
+                        thread.start();
+                        try {
+                            thread.join();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+
+                        //searchList = getSearchList(name);
+
+        }
+
+        if (searchList.isEmpty()){
+            System.out.println("empty at searchlist");
+        }
+
+        return searchList;
+    }
+    private ArrayList getSearchList(String name){
+        ArrayList list  = new ArrayList();
+
+        String sqlfamily  = "SELECT * from family where id = ?";
+        String sqlgetbarangay = "Select name from barangay where id = ?";
+        String sqlfamPoverty = "SELECT * from povertyfactors where familyid = ? ";
+
+            try {
+                connection = connectionPool.getConnection();
+                PreparedStatement ps = connection.prepareStatement(sqlfamily);
+                ps.setInt(1, 33);
+                ResultSet rs = ps.executeQuery();
+                System.out.println(name);
+
+                        while (rs.next()){
+
+                            // get family information
+                            int familyid = rs.getInt("id");
+                            int clientid = rs.getInt("clientid");
+                            int barangayid = rs.getInt("barangayid");
+                            String date = rs.getString("date");
+                            String Name = rs.getString("name");
+                            String maritalStat = rs.getString("maritalstatus");
+                            String age = rs.getString("age");
+                            String spouse = rs.getString("spouse");
+                            String address = rs.getString("address");
+                            int childrenNo = rs.getInt("childrenno");
+                            String gender = rs.getString("gender");
+                            int yrResidency = rs.getInt("yrresidency");
+                            int YrIssued = rs.getInt("yrissued");
+
+                            System.out.println(barangayid);
+
+                            // get the barangay name
+                            ps = connection.prepareStatement(sqlgetbarangay);
+                            ps.setInt(1, barangayid);
+
+                            ResultSet barangayRS = ps.executeQuery();
+
+                            barangayRS.next();
+                            String barangayName = barangayRS.getString("name");
+
+                            // create object family
+                            FamilyInfo familyinfo = new FamilyInfo(clientid, date, YrIssued, yrResidency,
+                                    childrenNo, Name, spouse, age, maritalStat, barangayName, gender, address);
+
+                            // get family poverty factors information
+                            ps = connection.prepareStatement(sqlfamPoverty);
+                            ps.setInt(1, familyid);
+                            ResultSet povertyRS = ps.executeQuery();
+
+                            povertyRS.next();
+                            String hasOtherIncome = povertyRS.getString("otherincome");
+                            String isBelow8k = povertyRS.getString("threshold");
+                            String ownership = povertyRS.getString("ownership");
+                            String occupancy = povertyRS.getString("occupancy");
+                            String isUnderEmployed = povertyRS.getString("underemployed");
+                            String schooldChildren = povertyRS.getString("schoolchildren");
+
+                            FamilyPoverty familyPoverty = new FamilyPoverty(hasOtherIncome, isBelow8k,
+                                    ownership, occupancy, isUnderEmployed, schooldChildren);
+
+                            Family fam = new Family(familyinfo, familyPoverty);
+
+                            list.add(fam);
+
+                        }
+
+
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+        if (list.isEmpty()){
+            list.isEmpty();
+            System.out.println("empty at getSearchlist");
+        }else{
+            System.out.println("list is not empty at getSearchList");
+        }
+
+
+        return list;
     }
 
     // this is used by the server

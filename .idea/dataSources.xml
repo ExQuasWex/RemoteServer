@@ -8,7 +8,7 @@
       <jdbc-url>jdbc:h2:file:c:/pdsss/database/pdss;Mode=MySQL;LOCK_MODE=1</jdbc-url>
       <libraries>
         <library>
-          <url>file://$USER_HOME$/h2-latest.jar</url>
+          <url>file://$PROJECT_DIR$/../h2-1.4.190.jar</url>
         </library>
       </libraries>
     </data-source>
