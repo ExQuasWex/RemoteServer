@@ -8,11 +8,8 @@ import Family.FamilyInfo;
 import clientModel.StaffInfo;
 import clientModel.StaffRegister;
 import global.OnlineClient;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import org.h2.jdbcx.JdbcConnectionPool;
 
-import java.io.FileOutputStream;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.sql.*;
@@ -33,15 +30,17 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private final String user = "admin";
     private final String pass = "admin";
 
-    private Object lock1;
-    private Object lock2;
-    private Object lock3;
-    private Object lock4;
-    private Object updateStaffLock;
-    private Object usernameLock;
-    private Object logoutLock;
-    private Object FamilyLock;
-    private Object searchLock;
+    private final Object lock1;
+    private final Object lock2;
+    private final Object lock3;
+    private final Object lock4;
+    private final Object pendingAccountLock;
+    private final Object updateStaffLock;
+    private final Object usernameLock;
+    private final Object logoutLock;
+    private final Object FamilyLock;
+    private final Object searchLock;
+    private final Object connectionLock;
 
     // this list holds all the usernames who are online
     private OnlineClientArrayList onlineClientArrayList;
@@ -69,31 +68,49 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         FamilyLock = new Object();
         updateStaffLock = new Object();
         searchLock = new Object();
-        connectionPool = JdbcConnectionPool.create(host, user, pass);
+        connectionLock = new Object();
+        pendingAccountLock = new Object();
 
+        connectionPool = JdbcConnectionPool.create(host, user, pass);
+        connectionPool.setMaxConnections(40);
         onlineClientArrayList = new OnlineClientArrayList();
 
     }
 
     // this is used directly by the client e.g checking database is up
-    public  boolean checkConnectDB(){
+    public  boolean checkConnectDB() throws SQLException {
         boolean isconnected = false;
 
-        try {
-            Connection connection = connectionPool.getConnection();
+                synchronized (connectionLock){
 
-            if (connection.isValid(5000)){
-                isconnected = true;
-            }else{
-                isconnected = false;
-            }
+                        try {
+                             connection = connectionPool.getConnection();
 
-            connection.close();
-        } catch (SQLException e) {
-            isconnected = false;
-            e.printStackTrace();
-        }
+                            if (connection.isValid(5000)){
+                                isconnected = true;
+
+                            }else{
+                                isconnected = false;
+                            }
+                            connection.close();
+                            System.out.println("Active Connections from connectDB:" + connectionPool.getActiveConnections());
+
+                        } catch (SQLException e) {
+                            isconnected = false;
+                            e.printStackTrace();
+                        }
+                }
+
         return isconnected;
+    }
+
+    // this is used by the server
+    @Override
+    public  boolean checkDatabase() throws RemoteException, SQLException {
+
+        synchronized (lock4){
+            return checkConnectDB();
+        }
     }
 
     @Override
@@ -142,6 +159,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     @Override
     public ArrayList searchedList(String name) throws RemoteException {
         searchList = new ArrayList<>();
+
         synchronized (searchLock){
                     Thread thread = new Thread(new Runnable() {
                         @Override
@@ -160,25 +178,56 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
                         //searchList = getSearchList(name);
 
+            if (searchList.isEmpty()){
+                System.out.println("empty at searchlist");
+                searchList.clear();
+            }
+
+
         }
 
-        if (searchList.isEmpty()){
-            System.out.println("empty at searchlist");
-        }
 
         return searchList;
     }
+
+    @Override
+    public int getPendingAccounts() throws RemoteException {
+        int numberOfPending = 0;
+        String sql = "Select count(id) from account where RequestStatus = 'Pending'";
+
+
+                synchronized (pendingAccountLock){
+
+                    try {
+                        connection = connectionPool.getConnection();
+
+                        PreparedStatement ps = connection.prepareStatement(sql);
+                        ResultSet rs = ps.executeQuery();
+                        rs.next();
+                        numberOfPending = rs.getInt(1);
+
+                        connection.close();
+
+                    }catch (SQLException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+
+        return numberOfPending;
+    }
+
     private ArrayList getSearchList(String name){
         ArrayList list  = new ArrayList();
 
-        String sqlfamily  = "SELECT * from family where id = ?";
+        String sqlfamily  = "SELECT * from family where name = ?";
         String sqlgetbarangay = "Select name from barangay where id = ?";
         String sqlfamPoverty = "SELECT * from povertyfactors where familyid = ? ";
 
             try {
                 connection = connectionPool.getConnection();
                 PreparedStatement ps = connection.prepareStatement(sqlfamily);
-                ps.setInt(1, 33);
+                ps.setString(1, name);
                 ResultSet rs = ps.executeQuery();
                 System.out.println(name);
 
@@ -213,6 +262,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                             // create object family
                             FamilyInfo familyinfo = new FamilyInfo(clientid, date, YrIssued, yrResidency,
                                     childrenNo, Name, spouse, age, maritalStat, barangayName, gender, address);
+                            familyinfo.setfamilyId(familyid);
 
                             // get family poverty factors information
                             ps = connection.prepareStatement(sqlfamPoverty);
@@ -243,7 +293,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
             }
 
         if (list.isEmpty()){
-            list.isEmpty();
+            list.clear();
             System.out.println("empty at getSearchlist");
         }else{
             System.out.println("list is not empty at getSearchList");
@@ -253,31 +303,25 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         return list;
     }
 
-    // this is used by the server
-    @Override
-    public  boolean checkDatabase() throws RemoteException, SQLException {
 
-        synchronized (lock4){
-            return checkConnectDB();
-        }
-    }
 
 
     //METHODS THAT ARE NEED TO BE SYNCRONIZED
 
     @Override
     public StaffInfo Login(String user, String pass, String ip) throws RemoteException {
-
+        System.out.println("Login method called");
 
         username = user;
         StaffInfo staffInfo = new StaffInfo(false,0,null,null,null,null,null,null,null,0);
 
         synchronized (lock3){
-            String loginSql = "SELECT id, User, password, status, role from account where User = ? and password = ?";
+            String loginSql = "SELECT id, User, password, status, role from account where User = ? and password = ?" +
+                    "and RequestStatus = 'Approved'";
             String updateStatus = "UPDATE account SET status = ? WHERE User = ? and password = ?";
 
             try {
-                connection = connectionPool.getConnection();
+              Connection  connection = connectionPool.getConnection();
                 PreparedStatement ps = connection.prepareStatement(loginSql);
                 ps.setString(1,user);
                 ps.setString(2, pass);
@@ -304,16 +348,15 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                         PreparedStatement updatePS = connection.prepareStatement(updateStatus);
                         updatePS.setString(1,"Online");
                         updatePS.setString(2,user);
-                        updatePS.setString(3,pass);
+                        updatePS.setString(3, pass);
                         updatePS.executeUpdate();
-
 
                         // decide whether admin or client to return
                                     if (role.equals("Client")){
-                                                staffInfo = getClientInformation();
+                                                staffInfo = getClientInformation(connection);
                                             }
                                     else if (role.equals("Admin")){
-                                                staffInfo = getAdminInfo();
+                                                staffInfo = getAdminInfo(connection);
                                     }
 
                     // record did not match
@@ -325,10 +368,9 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                     System.out.println("exlse");
 
                 }
-
-                ps.close();
+                System.out.println("Active Connections:" + connectionPool.getActiveConnections());
                 connection.close();
-
+                System.out.println("Active Connections:" + connectionPool.getActiveConnections());
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -338,14 +380,12 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     return staffInfo;
     }
 
-    private StaffInfo getAdminInfo(){
+    private StaffInfo getAdminInfo(Connection connection) throws SQLException {
         StaffInfo  staffInfo = new StaffInfo(false,0,null, null,null,null,null,null,null,0);
 
         try {
-                    connection = connectionPool.getConnection();
 
-                    String sql = "Select name,contact from admin where accountId = ?";
-
+            String sql = "Select name,contact from admin where accountId = ?";
                     PreparedStatement ps = connection.prepareStatement(sql);
                     ps.setInt(1, AccountID);
 
@@ -364,24 +404,23 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                                 staffInfo.setPassword(globalPassword);
                                 staffInfo.setAddress("");
                                 staffInfo.setContact(contact);
+                    System.out.println("successfully login ass admin");
 
-            System.out.println("successfully login ass admin");
-
-                } catch (SQLException e) {
+            }catch (SQLException e) {
                     e.printStackTrace();
-                }
+            }
+
 
         return staffInfo;
     }
 
 
-    private StaffInfo getClientInformation(){
+    private StaffInfo getClientInformation(Connection connection){
         StaffInfo  staffInfo = new StaffInfo(false,0,null, null,null,null,null,null,null,0);
 
         int x = 0;
 
             try {
-
                     String getInfoSql = "SELECT name, address, contactno, totalentries FROM client WHERE accountid = ?";
 
                     PreparedStatement getPS = connection.prepareStatement(getInfoSql);
@@ -459,34 +498,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         }
 
 
-    @Override
-    public boolean getAdminKeyCode(String keycode) throws RemoteException {
-
-        boolean bool = false;
-
-        synchronized (lock1){
-
-            String Sql = "Select KeyCode from keycode where keycode = ?";
-            try {
-                connection = connectionPool.getConnection();
-                PreparedStatement ps = connection.prepareStatement(Sql);
-                ps.setString(1, keycode);
-
-                ResultSet rs = ps.executeQuery();
-
-                if (rs.next()){
-                    bool = true;
-                }else {
-                    bool = false;
-                }
-                ps.close();
-                connection.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-        return bool;
-    }
 
     @Override
     public boolean register(StaffRegister staffRegister) throws RemoteException {
@@ -498,13 +509,15 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
             /// insert account of the encode here
 
-            String insertAccount = "INSERT INTO account (User,password,Status) VALUES (?,?,?)";
+            String insertAccount = "INSERT INTO account (User,password,RequestStatus, Status) VALUES (?,?,?,?)";
             try {
                 connection = connectionPool.getConnection();
                 PreparedStatement ps = connection.prepareStatement(insertAccount, Statement.RETURN_GENERATED_KEYS);
                 ps.setString(1,staffRegister.getUsername());
                 ps.setString(2,staffRegister.getPassword());
-                ps.setString(3,"offline");
+                ps.setString(3,"Pending");
+                ps.setString(4,"Offline");
+
 
                 ps.executeUpdate();
 
