@@ -1,5 +1,6 @@
 package MainApp.ClientSide;
 
+import AdminModel.RequestAccounts;
 import RMI.RemoteMethods;
 import Family.Family;
 import Family.FamilyPoverty;
@@ -41,6 +42,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private final Object FamilyLock;
     private final Object searchLock;
     private final Object connectionLock;
+    private final Object requestAccountLock;
+
 
     // this list holds all the usernames who are online
     private OnlineClientArrayList onlineClientArrayList;
@@ -70,6 +73,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         searchLock = new Object();
         connectionLock = new Object();
         pendingAccountLock = new Object();
+        requestAccountLock = new Object();
 
         connectionPool = JdbcConnectionPool.create(host, user, pass);
         connectionPool.setMaxConnections(40);
@@ -217,6 +221,33 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         return numberOfPending;
     }
 
+    @Override
+    public ArrayList getRequestAccounts() throws RemoteException {
+        ArrayList<RequestAccounts> requestList = new ArrayList();
+            String sql = "Select Name from client where accountid IN (Select id from account where requestStatus = 'Pending')";
+            String sqlids = "Select id from account where requestStatus = 'Pending'";
+
+            synchronized (requestAccountLock){
+                    try {
+                        connection = connectionPool.getConnection();
+                        PreparedStatement ps = connection.prepareStatement(sql);
+                        ResultSet rs = ps.executeQuery();
+
+                        while (rs.next()){
+                            RequestAccounts ra = new RequestAccounts(rs.getString("Name"),1);
+                            requestList.add(ra);
+                        }
+
+                        connection.close();
+
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
+            }
+
+        return requestList;
+    }
+
     private ArrayList getSearchList(String name){
         ArrayList list  = new ArrayList();
 
@@ -225,7 +256,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         String sqlfamPoverty = "SELECT * from povertyfactors where familyid = ? ";
 
             try {
-                connection = connectionPool.getConnection();
+               Connection connection = connectionPool.getConnection();
                 PreparedStatement ps = connection.prepareStatement(sqlfamily);
                 ps.setString(1, name);
                 ResultSet rs = ps.executeQuery();
@@ -286,7 +317,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
                         }
 
-
+                    connection.close();
 
             } catch (SQLException e) {
                 e.printStackTrace();
@@ -795,6 +826,27 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         }
         System.out.println("sucessfully added Family");
         return isAdded;
+    }
+
+
+    // getActiveConnection method is just used for development purpose
+    public void getActiveConnection(){
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (true){
+                        try {
+                            Thread.sleep(5002);
+                            System.out.println(connectionPool.getActiveConnections());
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                }
+            }
+        });
+
+        thread.start();
+
     }
 
 }

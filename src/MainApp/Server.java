@@ -19,14 +19,9 @@ public class Server extends Application {
 
     public  static  void main (String []argh){
 
-        Thread clientThread = new Thread(() -> {
-
             connectClientDB();
 
-        });
-        clientThread.start();
-
-        Application.launch(argh);
+            Application.launch(argh);
 
     }
 
@@ -35,6 +30,7 @@ public class Server extends Application {
         try {
 
             ClientDB clientDB = new ClientDB();
+            clientDB.getActiveConnection();
             Registry reg = LocateRegistry.createRegistry(Constant.Remote_port);
             reg.bind(Constant.Remote_ID,clientDB);
 
