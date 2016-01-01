@@ -224,8 +224,10 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     @Override
     public ArrayList getRequestAccounts() throws RemoteException {
         ArrayList<RequestAccounts> requestList = new ArrayList();
-            String sql = "Select Name from client where accountid IN (Select id from account where requestStatus = 'Pending')";
-            String sqlids = "Select id from account where requestStatus = 'Pending'";
+            String sql = "SELECT  name, accountid  FROM client C\n" +
+                    "LEFT JOIN account A ON C.accountid = A.id\n" +
+                    "WHERE A.requestStatus = 'Pending'\n";
+
 
             synchronized (requestAccountLock){
                     try {
@@ -234,7 +236,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                         ResultSet rs = ps.executeQuery();
 
                         while (rs.next()){
-                            RequestAccounts ra = new RequestAccounts(rs.getString("Name"),1);
+                            RequestAccounts ra = new RequestAccounts(rs.getString("Name"), rs.getInt("accountid"));
                             requestList.add(ra);
                         }
 
@@ -246,6 +248,45 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
             }
 
         return requestList;
+    }
+
+    // Use for tableItemListener
+    @Override
+    public boolean Approve(RequestAccounts ra) {
+        boolean isApproved = false;
+
+        String sql = "Update account SET requestStatus = 'Approved' WHERE id = ?";
+        try {
+            connection = connectionPool.getConnection();
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setInt(1,ra.getId());
+
+            int row = ps.executeUpdate();
+
+            if (row >= 1){
+                isApproved = true;
+            }else {
+                isApproved = false;
+            }
+
+            connection.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return isApproved;
+    }
+
+    @Override
+    public boolean ApproveAdmin(RequestAccounts ra) {
+
+        return false;
+    }
+
+    @Override
+    public boolean Reject(RequestAccounts ra) {
+        return false;
     }
 
     private ArrayList getSearchList(String name){
