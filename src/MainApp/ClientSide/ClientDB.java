@@ -15,6 +15,7 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Objects;
 
 /**
  * Created by Didoy on 8/24/2015.
@@ -43,6 +44,12 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private final Object searchLock;
     private final Object connectionLock;
     private final Object requestAccountLock;
+    private final Object ApprovedLock;
+    private final Object ApprovedAdminLock;
+    private final Object RejectLock;
+
+
+
 
 
     // this list holds all the usernames who are online
@@ -74,6 +81,11 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         connectionLock = new Object();
         pendingAccountLock = new Object();
         requestAccountLock = new Object();
+
+        ApprovedLock = new Object();
+        ApprovedAdminLock = new Object();
+        RejectLock = new Object();
+
 
         connectionPool = JdbcConnectionPool.create(host, user, pass);
         connectionPool.setMaxConnections(40);
@@ -256,38 +268,105 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         boolean isApproved = false;
 
         String sql = "Update account SET requestStatus = 'Approved' WHERE id = ?";
-        try {
-            connection = connectionPool.getConnection();
 
-            PreparedStatement ps = connection.prepareStatement(sql);
-            ps.setInt(1,ra.getId());
+                synchronized (ApprovedLock){
+                        try {
+                            connection = connectionPool.getConnection();
 
-            int row = ps.executeUpdate();
+                            PreparedStatement ps = connection.prepareStatement(sql);
+                            ps.setInt(1,ra.getId());
 
-            if (row >= 1){
-                isApproved = true;
-            }else {
-                isApproved = false;
-            }
+                            int row = ps.executeUpdate();
 
-            connection.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+                                    if (row >= 1){
+                                        isApproved = true;
+                                    }else {
+                                        isApproved = false;
+                                    }
+
+                            connection.close();
+                        } catch (SQLException e) {
+                            isApproved = true;
+                            e.printStackTrace();
+                        }
+                }
 
         return isApproved;
     }
 
     @Override
-    public boolean ApproveAdmin(RequestAccounts ra) {
+    public boolean ApproveAdmin(RequestAccounts ra)  {
+        boolean isActivated = false;
 
-        return false;
+        String sql = "Update account set requeststatus = 'Approved', Role = 'Admin' where id= ?";
+
+                synchronized (ApprovedAdminLock){
+                            try {
+                                connection = connectionPool.getConnection();
+
+                                PreparedStatement ps = connection.prepareStatement(sql);
+                                ps.setInt(1,ra.getId());
+
+
+                                int row  = ps.executeUpdate();
+
+                                            if (row >= 1){
+                                                isActivated = true;
+
+                                            }else {
+                                                isActivated = false;
+                                            }
+
+
+
+                            } catch (SQLException e) {
+                                isActivated = false;
+                                e.printStackTrace();
+                            }finally {
+                                try {
+                                    connection.close();
+                                } catch (SQLException e) {
+                                    e.printStackTrace();
+                                }
+
+                            }
+                }
+
+        return isActivated;
     }
 
     @Override
     public boolean Reject(RequestAccounts ra) {
-        return false;
+        boolean isRejected = false;
+        String sql = "Update account set requeststatus = 'Rejected' where id = ?";
+
+            synchronized (RejectLock){
+                try {
+                    connection = connectionPool.getConnection();
+
+                    PreparedStatement  ps = connection.prepareStatement(sql);
+                    ps.setInt(1,ra.getId());
+
+                    int row = ps.executeUpdate();
+
+                            if (row >= 1){
+                                isRejected = true;
+                            }else {
+                                isRejected = false;
+                            }
+
+                } catch (SQLException e) {
+                    isRejected = false;
+                    e.printStackTrace();
+                }
+
+
+            }
+
+
+        return isRejected;
     }
+
 
     private ArrayList getSearchList(String name){
         ArrayList list  = new ArrayList();
@@ -374,7 +453,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
         return list;
     }
-
 
 
 
