@@ -371,16 +371,16 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private ArrayList getSearchList(String name){
         ArrayList list  = new ArrayList();
 
-        String sqlfamily  = "SELECT * from family where name = ?";
+        String sqlfamily  = "SELECT * from family where (Lower(name) = ? or Lower (spouse) = ?) ";
         String sqlgetbarangay = "Select name from barangay where id = ?";
         String sqlfamPoverty = "SELECT * from povertyfactors where familyid = ? ";
 
             try {
                Connection connection = connectionPool.getConnection();
                 PreparedStatement ps = connection.prepareStatement(sqlfamily);
-                ps.setString(1, name);
+                ps.setString(1, name.toLowerCase());
+                ps.setString(2,name.toLowerCase());
                 ResultSet rs = ps.executeQuery();
-                System.out.println(name);
 
                         while (rs.next()){
 
