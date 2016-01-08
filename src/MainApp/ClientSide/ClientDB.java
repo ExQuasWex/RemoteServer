@@ -49,7 +49,9 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private final Object RejectLock;
 
 
-
+    // CLient Credential
+    private int PORT = 0;
+    private  String REMOTE_ID;
 
 
     // this list holds all the usernames who are online
@@ -459,8 +461,11 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     //METHODS THAT ARE NEED TO BE SYNCRONIZED
 
     @Override
-    public StaffInfo Login(String user, String pass, String ip) throws RemoteException {
-        System.out.println("Login method called");
+    public StaffInfo Login(String user, String pass, String ip, int port, String Remote_ID) throws RemoteException {
+        System.out.println("Login method called port number:" + port);
+
+        REMOTE_ID = Remote_ID;
+        PORT = port;
 
         username = user;
         StaffInfo staffInfo = new StaffInfo(false,0,null,null,null,null,null,null,null,0);
@@ -597,21 +602,27 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                                                                     staffInfo.setEntries(totalentries);
 
                                                                     // add this account to list
-                                                                    OnlineClient onlineClient = new OnlineClient(username,ipAddress);
+                                                                    OnlineClient onlineClient = new OnlineClient(username,ipAddress, PORT, REMOTE_ID);
                                                                     onlineClientArrayList.add(onlineClient);
                                                                     System.out.println("first online");
                                                                     return staffInfo;
 
                                                     }else {
-                                                                while (x <= onlineClientArrayList.size()){
+                                                                while (x <= onlineClientArrayList.size() -1){
+                                                                    System.out.println("Starting too loop");
+
                                                                     OnlineClient client  = onlineClientArrayList.get(x);
-                                                                    System.out.println(client.getUsername());
+                                                                    System.out.println(client.getUsername()+ "=="+ username);
                                                                     System.out.println(status);
+
+
                                                                             if (client.getUsername().equals(username) && status.equals("Online")){
 
                                                                                 // indicate that client is already online
                                                                                 System.out.println(client.getUsername() + " is already Online");
+                                                                                staffInfo.setAccountExist(true);
                                                                                 staffInfo.setStatus("Online");
+
                                                                                 return staffInfo;
 
                                                                             }else{
@@ -629,13 +640,17 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                                                                                 staffInfo.setEntries(totalentries);
 
                                                                                 // add this to client list
-                                                                                OnlineClient onlineClient = new OnlineClient(username,ipAddress);
+                                                                                OnlineClient onlineClient = new OnlineClient(username,ipAddress, PORT, REMOTE_ID);
                                                                                 onlineClientArrayList.add(onlineClient);
                                                                                 System.out.println("Successfully Login");
 
+                                                                                 x++;
+
+                                                                                return  staffInfo;
+
                                                                             }
 
-                                                                    x++;
+
                                                                 }
 
                                                     }
@@ -643,7 +658,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
             } catch (SQLException e) {
                 e.printStackTrace();
             }
-
+        System.out.println(staffInfo.getUsername()+ " wagasgasdas");
             return staffInfo;
         }
 
@@ -956,7 +971,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 while (true){
                         try {
                             Thread.sleep(5002);
-                            System.out.println(connectionPool.getActiveConnections());
+                            System.out.println("Active connectionss : "+connectionPool.getActiveConnections());
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }

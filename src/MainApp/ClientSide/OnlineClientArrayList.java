@@ -61,13 +61,16 @@ class OnlineClientArrayList extends ArrayList<OnlineClient> implements Runnable 
             Iterator ite = iterator();
             while (ite.hasNext()){
                 OnlineClient client = (OnlineClient) ite.next();
-                System.out.println(client.getUsername());
+               // System.out.println(client.getUsername());
 
                 try {
-                    System.setProperty("java.rmi.server.hostname", client.getIpaddress());
-                    Registry reg = LocateRegistry.getRegistry(client.getIpaddress(), Constant.ClientPort,csf);
+                   // System.out.println("PORTNUMBER:" + client.getPort());
+                    Registry reg = LocateRegistry.getRegistry( System.setProperty("java.rmi.server.hostname",
+                          client.getIpaddress()), client.getPort() ,csf);
 
-                    ClientInterface Ci = (ClientInterface) reg.lookup(Constant.Remote_ID);
+
+
+                    ClientInterface Ci = (ClientInterface) reg.lookup(client.getREMOTE_ID());
                     Ci.imAlive();
 
 

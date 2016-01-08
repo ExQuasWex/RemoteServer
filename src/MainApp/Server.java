@@ -31,6 +31,7 @@ public class Server extends Application {
 
             ClientDB clientDB = new ClientDB();
             clientDB.getActiveConnection();
+
             Registry reg = LocateRegistry.createRegistry(Constant.Remote_port);
             reg.bind(Constant.Remote_ID,clientDB);
 
