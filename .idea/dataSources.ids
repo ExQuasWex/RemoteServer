@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component name="dataSourceStorage">
   <data-source name="pdss" uuid="1cfd4ba5-efcf-427c-b399-0e2b17fdb549">
-    <database-info product="H2" version="1.4.190 (2015-10-11)" jdbc-version="4.0" driver-name="H2 JDBC Driver" driver-version="1.4.190 (2015-10-11)">
+    <database-info product="H2" version="1.4.187 (2015-04-10)" jdbc-version="4.0" driver-name="H2 JDBC Driver" driver-version="1.4.187 (2015-04-10)">
       <identifier-quote-string>&quot;</identifier-quote-string>
     </database-info>
     <case-sensitivity plain-identifiers="lower" quoted-identifiers="lower"/>

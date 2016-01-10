@@ -31,6 +31,13 @@
     <entry_points version="2.0" />
   </component>
   <component name="IdProvider" IDEtalkID="E038B3E4606DCF547B155AFA5FFC76AC" />
+  <component name="MavenProjectsManager">
+    <option name="originalFiles">
+      <list>
+        <option value="$PROJECT_DIR$/pom.xml" />
+      </list>
+    </option>
+  </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="false">
     <OptionsSetting value="true" id="Add" />
     <OptionsSetting value="true" id="Remove" />
