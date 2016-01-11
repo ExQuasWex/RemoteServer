@@ -9,6 +9,7 @@ import Remote.Method.FamilyModel.FamilyInfo;
 
 import clientModel.StaffInfo;
 import clientModel.StaffRegister;
+import com.sun.org.apache.bcel.internal.generic.IF_ACMPEQ;
 import global.OnlineClient;
 import org.h2.jdbcx.JdbcConnectionPool;
 
@@ -52,6 +53,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private final Object ApprovedAdminLock;
     private final Object RejectLock;
 
+
+    private String methodIdentifier;
 
     // CLient Credential
     private int PORT = 0;
@@ -196,16 +199,15 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                             e.printStackTrace();
                         }
 
-                        //searchList = getSearchList(name);
 
             if (searchList.isEmpty()){
                 System.out.println("empty at searchlist");
                 searchList.clear();
+            }else {
+                System.out.println("not empty at searchlist");
             }
 
-
         }
-
 
         return searchList;
     }
@@ -460,7 +462,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
         return isRejected;
     }
-
 
 
     //METHODS THAT ARE NEED TO BE SYNCRONIZED
@@ -814,10 +815,31 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         }
 
     }
+    /*
+     represents method name, which can distinguish
+     Search from notifyclient in addFamilyInfo method
+     */
+    public String getMethodIdentifier() {
+        return methodIdentifier;
+    }
+
+    public void setMethodIdentifier(String methodIdentifier) {
+        this.methodIdentifier = methodIdentifier;
+    }
+
+    @Override
+    public String getMethodIdentifiers() throws RemoteException {
+        return getMethodIdentifier();
+    }
+
 
     @Override
     public boolean addFamilyInfo(Family family) throws RemoteException {
-        boolean bool= false;
+         final String SEARCH = "SEARCH";
+         final String NOTIFY = "NOTIFY";
+
+          boolean bool = false;
+
         String checkRecord = "Select name from family where name = ?";
 
         synchronized (FamilyLock) {
@@ -829,20 +851,25 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
                 ResultSet rs = ps.executeQuery();
 
-                if (rs.next()){
-                   // notifyClient();
-                }else{
-                 bool =  addToBarangay(family);
-                }
-                connection.close();
+                        if (rs.next()){
+                            notifyClient(family);
+                            setMethodIdentifier(NOTIFY);
+                        }else{
+                         bool =  addToBarangay(family);
+                            setMethodIdentifier(SEARCH);
+                        }
 
             } catch (SQLException e) {
-                bool = false;
                 e.printStackTrace();
+
+            }finally {
+                try {
+                    connection.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
             }
         }
-
-
         return bool;
     }
 
@@ -872,7 +899,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 if (chckRs.next()){
                     barangayID = chckRs.getInt(1);
 
-                    //update
+                    //update the barangay
                     PreparedStatement updatePs = connection.prepareStatement(updateBarangay,Statement.RETURN_GENERATED_KEYS);
                     updatePs.setInt(1,barangayID);
                     int row = updatePs.executeUpdate();
@@ -982,19 +1009,23 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     notify client that the faily he tried to input
     has existing account
      */
-    private void notifyClient(int accountID){
+    private void notifyClient(Family family){
         Registry reg = null;
 
-        // get requirements
-        String username = getUsername(accountID);
+        // get username
+        String username = getUsername(family.getFamilyinfo().getClientID());
         OnlineClient client = onlineClientArrayList.getClientCredential(username);
 
         TimedRMIclientSocketFactory  csf = new TimedRMIclientSocketFactory(6000);
                 try {
-                    reg = LocateRegistry.getRegistry(System.setProperty("java.rmi.server.hostname",
-                                client.getIpaddress()), client.getPort(), csf);
+                        reg = LocateRegistry.getRegistry(System.setProperty("java.rmi.server.hostname",
+                                    client.getIpaddress()), client.getPort(), csf);
+                        ClientInterface clientInterface = (ClientInterface) reg.lookup(client.getREMOTE_ID());
 
-                    ClientInterface Ci = (ClientInterface) reg.lookup(client.getREMOTE_ID());
+                        ArrayList commonNameList = searchedList(family.getFamilyinfo().getName());
+
+                          System.out.println("family name from notif : " + family.getFamilyinfo().getName()) ;
+                        clientInterface.notifyClient(commonNameList);
 
                 } catch (RemoteException e) {
                     e.printStackTrace();
@@ -1009,14 +1040,14 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
             String usernameSQL = "SELECT User FROM account WHERE id = ?";
 
             try {
-                connection = connectionPool.getConnection();
+              Connection  connection = connectionPool.getConnection();
                 PreparedStatement ps = connection.prepareStatement(usernameSQL);
                 ps.setInt(1,accountID);
 
                 ResultSet rs = ps.executeQuery();
 
                 if (rs.next()){
-                    username = rs.getString("username");
+                    username = rs.getString("user");
                 }
                 ps.close();
                 connection.close();
