@@ -1,16 +1,6 @@
 <component name="ArtifactManager">
   <artifact type="javafx" name="RemoteServer">
-    <output-path>$PROJECT_DIR$/out/artifacts/RemoteServer</output-path>
-    <properties id="javafx-properties">
-      <options>
-        <option name="appClass" value="MainApp.Server" />
-        <option name="description" value="" />
-        <option name="htmlParamFile" value="" />
-        <option name="paramFile" value="" />
-        <option name="title" value="" />
-        <option name="vendor" value="" />
-      </options>
-    </properties>
+    <output-path>$USER_HOME$/Desktop/</output-path>
     <root id="root">
       <element id="archive" name="RemoteServer.jar">
         <element id="module-output" name="RemoteServer" />

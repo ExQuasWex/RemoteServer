@@ -48,6 +48,8 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                 synchronized (lock1){
 
                     try {
+
+
                         connection = connectionPool.getConnection();
                         //  Select name, date,  SUM(unresolvepopulation) from barangay where date = 2014 GROUP BY name,date
                         String sql = "  Select name, date,  SUM(unresolvepopulation) as total from barangay GROUP BY name,date";
