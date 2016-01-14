@@ -2,6 +2,7 @@ package MainApp.ClientSide;
 
 import AdminModel.RequestAccounts;
 import RMI.ClientInterface;
+import RMI.Constant;
 import RMI.RemoteMethods;
 import  Remote.Method.FamilyModel.Family;
 import Remote.Method.FamilyModel.FamilyPoverty;
@@ -13,6 +14,7 @@ import com.sun.org.apache.bcel.internal.generic.IF_ACMPEQ;
 import global.OnlineClient;
 import org.h2.jdbcx.JdbcConnectionPool;
 
+import java.rmi.AlreadyBoundException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -20,6 +22,7 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.sql.*;
 import java.sql.Date;
+import java.time.LocalDate;
 import java.util.*;
 
 /**
@@ -101,6 +104,19 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         onlineClientArrayList = new OnlineClientArrayList();
 
     }
+    public void StartClientServer(){
+
+        Registry reg = null;
+        try {
+            reg = LocateRegistry.createRegistry(Constant.Remote_port);
+            reg.bind(Constant.Remote_ID,this);
+
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        } catch (AlreadyBoundException e) {
+            e.printStackTrace();
+        }
+    }
 
     public  boolean checkConnectDB() throws SQLException {
         boolean isconnected = false;
@@ -135,6 +151,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
             return checkConnectDB();
         }
     }
+
+
 
     @Override
     public boolean updateStaffInfo(StaffInfo staffInfo, String oldUsername) throws RemoteException {
@@ -244,7 +262,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 int childrenNo = rs.getInt("childrenno");
                 String gender = rs.getString("gender");
                 int yrResidency = rs.getInt("yrresidency");
-                int YrIssued = rs.getInt("yrissued");
+                LocalDate YrIssued = StringToLocalDate(rs.getString("yrissued"));
+
 
                 System.out.println(barangayid);
 
@@ -274,9 +293,12 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 String occupancy = povertyRS.getString("occupancy");
                 String isUnderEmployed = povertyRS.getString("underemployed");
                 String schooldChildren = povertyRS.getString("schoolchildren");
+                LocalDate year = StringToLocalDate(povertyRS.getString("year"));
+
+                int month = povertyRS.getInt("month");
 
                 FamilyPoverty familyPoverty = new FamilyPoverty(hasOtherIncome, isBelow8k,
-                        ownership, occupancy, isUnderEmployed, schooldChildren);
+                        ownership, occupancy, isUnderEmployed, schooldChildren, year, month);
 
                 Family fam = new Family(familyinfo, familyPoverty);
 
@@ -891,8 +913,9 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
                 PreparedStatement chckPs = connection.prepareStatement(chckBarangay,Statement.RETURN_GENERATED_KEYS);
                 chckPs.setString(1,family.getFamilyinfo().getBarangay());
-                chckPs.setInt(2,family.getFamilyinfo().getSurveyedYr());
+                chckPs.setString(2, family.getFamilyinfo().getSurveyedYr().toString());
                 chckPs.setInt(3,currentMonth);
+
 
                 ResultSet chckRs = chckPs.executeQuery();
 
@@ -908,7 +931,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                     // insert new  barangay record
                     PreparedStatement barangayPS = connection.prepareStatement(insertbarangay, Statement.RETURN_GENERATED_KEYS);
                     barangayPS.setString(1,family.getFamilyinfo().getBarangay());
-                    barangayPS.setInt(2, family.getFamilyinfo().getSurveyedYr());
+                    barangayPS.setString(2, family.getFamilyinfo().getSurveyedYr().toString());
                     barangayPS.setInt(3,currentMonth);
                     barangayPS.setInt(4,1);
                     barangayPS.setInt(5,0);
@@ -952,7 +975,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
             ps.setInt(8,numofChildren);
             ps.setString(9,family.getFamilyinfo().getGender());
             ps.setInt(10, family.getFamilyinfo().getResidencyYr());
-            ps.setInt(11, family.getFamilyinfo().getSurveyedYr());
+            ps.setString(11, family.getFamilyinfo().getSurveyedYr().toString());
             ps.setInt(12,family.getFamilyinfo().getClientID());
 
             int row = ps.executeUpdate();
@@ -977,20 +1000,22 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     public boolean addPovertyFactors(FamilyPoverty familyPoverty, int familyId, Connection connection){
         boolean isAdded = false;
 
-        String addPovertySql = "Insert Into povertyfactors (Familyid, occupancy,schoolchildren," +
+        String addPovertySql = "Insert Into povertyfactors (Familyid, year, month, occupancy,schoolchildren," +
                 "underemployed,otherincome,threshold,ownership) " +
-                "Values (?,?,?,?,?,?,?)";
+                "Values (?,?,?,?,?,?,?,?,?)";
 
         //
         try {
             PreparedStatement ps = connection.prepareStatement(addPovertySql);
             ps.setInt(1,familyId);
-            ps.setString(2,familyPoverty.getOccupancy());
-            ps.setString(3,familyPoverty.getChildreninSchool());
-            ps.setString(4,familyPoverty.getIsunderEmployed());
-            ps.setString(5,familyPoverty.getHasotherIncome());
-            ps.setString(6,familyPoverty.getIsbelow8k());
-            ps.setString(7,familyPoverty.getOwnership());
+            ps.setString(2, familyPoverty.getYear().toString());
+            ps.setInt(3,familyPoverty.getMonth());
+            ps.setString(4,familyPoverty.getOccupancy());
+            ps.setString(5,familyPoverty.getChildreninSchool());
+            ps.setString(6,familyPoverty.getIsunderEmployed());
+            ps.setString(7,familyPoverty.getHasotherIncome());
+            ps.setString(8,familyPoverty.getIsbelow8k());
+            ps.setString(9,familyPoverty.getOwnership());
 
             int row = ps.executeUpdate();
                 if (row == 1) {
@@ -1068,6 +1093,12 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         int month = cal.get(Calendar.MONTH);
 
         return month + 1;
+    }
+
+    private LocalDate StringToLocalDate(String date){
+        LocalDate localDate = LocalDate.parse(date);
+
+        return localDate;
     }
 
 

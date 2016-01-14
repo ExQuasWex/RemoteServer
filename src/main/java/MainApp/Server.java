@@ -20,26 +20,23 @@ public class Server extends Application {
 
     public  static  void main (String []argh){
 
-            connectClientDB();
+        StartServer();
 
-            Application.launch(argh);
+        Application.launch(argh);
 
     }
 
 
-    public static void connectClientDB(){
+    public static void StartServer(){
         try {
 
             ClientDB clientDB = new ClientDB();
+            clientDB.StartClientServer();
             clientDB.getActiveConnection();
-
-            Registry reg = LocateRegistry.createRegistry(Constant.Remote_port);
-            reg.bind(Constant.Remote_ID,clientDB);
 
             // creating server for admin
             AdminDB adminserver = new AdminDB();
-            Registry reg2 = LocateRegistry.createRegistry(Constant.Adminport);
-            reg2.bind(Constant.RMIAdminID, adminserver);
+            adminserver.StartAdminServer();
 
             System.out.println("Server is now Running..");
 
@@ -51,9 +48,6 @@ public class Server extends Application {
             RemoteMessageException();
             System.out.println("Server:Server.java:connectClientDB: RemoteException ");
 
-        } catch (AlreadyBoundException e) {
-            RemoteMessageException();
-            System.out.println("Server:Server.java:connectClientDB: AlreadyBoundException ");
         }
 
     }
