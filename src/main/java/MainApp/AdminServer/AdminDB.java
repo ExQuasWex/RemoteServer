@@ -93,8 +93,8 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
         ArrayList factorList = new ArrayList();
         OverViewReportObject overViewReportObject = null ;
 
-        String povertyFactorSQL = "Select * from povertyfactors where year like '2015%'";
-        String povertyRateSQL = "Select name, unresolvepopulation  from barangay  where date like '2015%'";
+        String povertyFactorSQL = "Select * from povertyfactors where year like '2016%'";
+        String povertyRateSQL = "Select name, unresolvepopulation  from barangay  where date like '2016%'";
             synchronized (overviewLock){
 
                     try {
