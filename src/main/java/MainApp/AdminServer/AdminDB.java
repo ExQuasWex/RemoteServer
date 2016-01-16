@@ -166,8 +166,6 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
     @Override
     public ArrayList getBarangayData() throws RemoteException {
         ArrayList<BarangayData>  barangayDataList= new ArrayList<BarangayData>();
-        int size = 0;
-        int ctr = 0;
 
                 synchronized (lock1){
 

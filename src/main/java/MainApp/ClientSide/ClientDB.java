@@ -564,7 +564,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     }
 
 
-
     // SYNCHRONIZATION DEPENDS ON LOGINN
     private StaffInfo getAdminInfo(Connection connection) throws SQLException {
         StaffInfo  staffInfo = new StaffInfo(false,0,null, null,null,null,null,null,null,0);
