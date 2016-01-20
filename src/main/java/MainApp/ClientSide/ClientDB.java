@@ -11,8 +11,10 @@ import Remote.Method.FamilyModel.FamilyInfo;
 import clientModel.StaffInfo;
 import clientModel.StaffRegister;
 import com.sun.org.apache.bcel.internal.generic.IF_ACMPEQ;
+import global.Credentials;
 import global.OnlineClient;
 import org.h2.jdbcx.JdbcConnectionPool;
+import utility.Utility;
 
 import java.rmi.AlreadyBoundException;
 import java.rmi.NotBoundException;
@@ -118,6 +120,10 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         }
     }
 
+    private void StartUp(){
+
+    }
+
     public  boolean checkConnectDB() throws SQLException {
         boolean isconnected = false;
 
@@ -158,7 +164,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     public boolean updateStaffInfo(StaffInfo staffInfo, String oldUsername) throws RemoteException {
         boolean isUpdated = false;
         String sqlAccount = "Update account set user = ?, password = ? where id = ?";
-        String sqlStaffInfo = "Update client set name=?,  address = ?, contactno =?,  accountid =?";
+        String sqlStaffInfo = "Update client set name=?,  address = ?, contact =?,  accountid =?";
 
         synchronized (updateStaffLock){
                         try {
@@ -235,7 +241,9 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         ArrayList list  = new ArrayList();
 
         //SELECT * from family where (Lower(name) like  Lower('Orville%'))
-        String sqlfamily  = "SELECT * from family where (Lower(name) like ? or Lower (spouse) like ?) ";
+
+
+        String sqlfamily  = "SELECT * from family where (Lower(name) like ? or Lower (spouse) like ?)  ";
         String sqlgetbarangay = "Select name from barangay where id = ?";
         String sqlfamPoverty = "SELECT * from povertyfactors where familyid = ? ";
 
@@ -243,8 +251,9 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         try {
             Connection connection = connectionPool.getConnection();
             PreparedStatement ps = connection.prepareStatement(sqlfamily);
-            ps.setString(1, name.toLowerCase() + "%");
-            ps.setString(2,name.toLowerCase()+ "%");
+            ps.setString(1, "%" + name.toLowerCase() + "%");
+            ps.setString(2,"%" +name.toLowerCase()+ "%");
+
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()){
@@ -262,8 +271,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 int childrenNo = rs.getInt("childrenno");
                 String gender = rs.getString("gender");
                 int yrResidency = rs.getInt("yrresidency");
-                LocalDate YrIssued = StringToLocalDate(rs.getString("yrissued"));
-
+                LocalDate YrIssued = Utility.StringToLocalDate(rs.getString("yrissued"));
 
                 System.out.println(barangayid);
 
@@ -293,7 +301,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 String occupancy = povertyRS.getString("occupancy");
                 String isUnderEmployed = povertyRS.getString("underemployed");
                 String schooldChildren = povertyRS.getString("schoolchildren");
-                LocalDate year = StringToLocalDate(povertyRS.getString("year"));
+                LocalDate year = Utility.StringToLocalDate(povertyRS.getString("year"));
+
 
                 int month = povertyRS.getInt("month");
 
@@ -324,10 +333,12 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     }
 
 
+    // total numbers of pending accounts
     @Override
     public int getPendingAccounts() throws RemoteException {
         int numberOfPending = 0;
-        String sql = "Select count(id) from account where RequestStatus = 'Pending'";
+        String sql = "Select count(id) from request rq where accountid in  " +
+                "(select accountid from account where RequestStatus = 'Pending')";
 
 
                 synchronized (pendingAccountLock){
@@ -354,8 +365,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     @Override
     public ArrayList getRequestAccounts() throws RemoteException {
         ArrayList<RequestAccounts> requestList = new ArrayList();
-            String sql = "SELECT  name, accountid  FROM client C\n" +
-                    "LEFT JOIN account A ON C.accountid = A.id\n" +
+            String sql = "SELECT  name, accountid  FROM request RE\n" +
+                    "LEFT JOIN account A ON RE.accountid = A.id\n" +
                     "WHERE A.requestStatus = 'Pending'\n";
 
 
@@ -386,7 +397,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         boolean isApproved = false;
 
         String sql = "Update account SET requestStatus = 'Approved' WHERE id = ?";
-
                 synchronized (ApprovedLock){
                         try {
                             connection = connectionPool.getConnection();
@@ -396,7 +406,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
                             int row = ps.executeUpdate();
 
-                                    if (row >= 1){
+
+                                    if (row >= 1 && TransferInformation(ra.getId(), "client")){
                                         isApproved = true;
                                     }else {
                                         isApproved = false;
@@ -428,7 +439,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
                                 int row  = ps.executeUpdate();
 
-                                            if (row >= 1){
+                                            if (row >= 1 && TransferInformation(ra.getId(), "admin")){
                                                 isActivated = true;
 
                                             }else {
@@ -486,10 +497,49 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     }
 
 
+    private boolean  TransferInformation(int accountID, String tableName){
+        String getClientInfo = "Select * from request where accountid = ?";
+        String sqlTransfer = "Insert into " + tableName + "(Name, Address, contact, Gender, AccountID, SecretInfoID) VALUES (?,?,?,?,?,?)";
+        try {
+            Connection connection = connectionPool.getConnection();
+            PreparedStatement ps = connection.prepareStatement(getClientInfo);
+            ps.setInt(1, accountID);
+
+            ResultSet rs = ps.executeQuery();
+
+            rs.next();
+            String name = rs.getString("name");
+            String address = rs.getString("address");
+            String contact = rs.getString("contact");
+            String gender = rs.getString("gender");
+            int secretinfoID = rs.getInt("secretinfoid");
+
+            PreparedStatement transferPS = connection.prepareStatement(sqlTransfer);
+            transferPS.setString(1,name);
+            transferPS.setString(2,address);
+            transferPS.setString(3,contact);
+            transferPS.setString(4,gender);
+            transferPS.setInt(5, accountID);
+            transferPS.setInt(6, secretinfoID);
+
+            transferPS.executeUpdate();
+
+            connection.close();
+
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+
+    }
+
+
     //METHODS THAT ARE NEED TO BE SYNCRONIZED
 
     @Override
-    public StaffInfo Login(String user, String pass, String ip, int port, String Remote_ID) throws RemoteException {
+    public StaffInfo Login( String user, String pass, String ip, int port, String Remote_ID) throws RemoteException {
         System.out.println("Login method called port number:" + port);
 
         REMOTE_ID = Remote_ID;
@@ -509,7 +559,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 ps.setString(1,user);
                 ps.setString(2, pass);
 
-
                 // execute queries
                 ResultSet rs = ps.executeQuery();
 
@@ -517,7 +566,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 if (rs.next()){
                     String username = rs.getString("User");
                     String password = rs.getString("password");
-
 
                     // check if the record match
                     if (username.equals(user) && password.equals(pass)){
@@ -607,7 +655,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         int x = 0;
 
             try {
-                    String getInfoSql = "SELECT name, address, contactno, totalentries FROM client WHERE accountid = ?";
+                    String getInfoSql = "SELECT name, address, contact, totalentries FROM client WHERE accountid = ?";
 
                     PreparedStatement getPS = connection.prepareStatement(getInfoSql);
                     getPS.setInt(1, AccountID);
@@ -617,7 +665,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                     getRS.next();
                                     String name = getRS.getString("name");
                                     String address = getRS.getString("address");
-                                    String contacno = getRS.getString("contactno");
+                                    String contacno = getRS.getString("contact");
                                     int totalentries = getRS.getInt("totalentries");
 
                                                     if (onlineClientArrayList.isEmpty()){
@@ -640,7 +688,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
                                                     }else {
                                                                 while (x <= onlineClientArrayList.size() -1){
-                                                                    System.out.println("Starting too loop");
 
                                                                     OnlineClient client  = onlineClientArrayList.get(x);
                                                                     System.out.println(client.getUsername()+ "=="+ username);
@@ -752,7 +799,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
             // insert encoder personal information here
 
-            String infoSQL = "INSERT INTO client (Name, Address, ContactNo, Gender, AccountID, SecretInfoID) VALUES (?,?,?,?,?,?)";
+            String infoSQL = "INSERT INTO request (Name, Address, contact, Gender, AccountID, SecretInfoID) VALUES (?,?,?,?,?,?)";
 
             try {
                 PreparedStatement ps = connection.prepareStatement(infoSQL);
@@ -826,19 +873,22 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 ps.executeUpdate();
 
                 ps.close();
-                connection.close();
 
                 onlineClientArrayList.removeUserToList(username);
 
+                setCredentialStatus("offline", accountID, connection);
+
             } catch (SQLException e) {
                 e.printStackTrace();
+            }finally {
+                Utility.closeConnection(connection);
             }
         }
 
     }
     /*
-     represents method name, which can distinguish
-     Search from notifyclient in addFamilyInfo method
+
+
      */
     public String getMethodIdentifier() {
         return methodIdentifier;
@@ -854,48 +904,75 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     }
 
 
+
     @Override
-    public boolean addFamilyInfo(Family family) throws RemoteException {
-         final String SEARCH = "SEARCH";
-         final String NOTIFY = "NOTIFY";
+    public boolean addFamilyInfo(boolean instantSave, Family family) throws RemoteException {
 
-          boolean bool = false;
-
-        String checkRecord = "Select name from family where name = ?";
+        boolean bool = false;
 
         synchronized (FamilyLock) {
-            try {
-                connection = connectionPool.getConnection();
 
-                PreparedStatement ps = connection.prepareStatement(checkRecord);
-                ps.setString(1,family.getFamilyinfo().getName());
-
-                ResultSet rs = ps.executeQuery();
-
-                        if (rs.next()){
-                            notifyClient(family);
-                            setMethodIdentifier(NOTIFY);
-                        }else{
-                         bool =  addToBarangay(family);
-                            setMethodIdentifier(SEARCH);
-                        }
-
-            } catch (SQLException e) {
-                e.printStackTrace();
-
-            }finally {
                 try {
-                    connection.close();
+                    connection = connectionPool.getConnection();
+
+
+                    if (instantSave){
+                        bool =  addToBarangay(family, connection);
+                        System.out.println("InstantSave");
+                    }else {
+                        bool = addToFamilyWithCheck(family, connection);
+                        System.out.println("not instantSave");
+
+                    }
+
+
                 } catch (SQLException e) {
                     e.printStackTrace();
+                }finally {
+                            try {
+                                connection.close();
+                            } catch (SQLException e) {
+                                e.printStackTrace();
+                            }
                 }
-            }
+
         }
         return bool;
     }
 
+    private boolean addToFamilyWithCheck(Family family, Connection connection){
+        boolean bool = false;
+        final String SEARCH = "SEARCH";
+        final String NOTIFY = "NOTIFY";
+        String checkRecord = "Select name from family where name = ?";
+
+        try {
+
+            PreparedStatement ps = connection.prepareStatement(checkRecord);
+            ps.setString(1,family.getFamilyinfo().getName());
+
+            ResultSet rs = ps.executeQuery();
+
+                    if (rs.next()){
+                        notifyClient(family);
+                        setMethodIdentifier(NOTIFY);
+                    }else{
+                        bool =  addToBarangay(family, connection);
+                        setMethodIdentifier(SEARCH);
+                    }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+
+        }
+
+        return bool;
+    }
+
+
+
     // Date column represent YEAR!
-    private boolean addToBarangay(Family family){
+    private boolean addToBarangay(Family family, Connection connection){
     boolean isValid = false;
 
         String insertbarangay = "Insert INTO barangay (name,date,month,unresolvepopulation,resolvepopulation) VALUES " +
@@ -903,7 +980,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         String chckBarangay = "Select id from barangay where name = ? and date = ? and month = ?";
         String updateBarangay = "Update barangay  SET Unresolvepopulation = Unresolvepopulation + 1 where id = ?";
 
-        int currentMonth = getCurrentMonth();
+        int currentMonth = Utility.getCurrentMonth();
 
         int barangayID = 0;
 
@@ -1049,7 +1126,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                         ArrayList commonNameList = searchedList(family.getFamilyinfo().getName());
 
                           System.out.println("family name from notif : " + family.getFamilyinfo().getName()) ;
-                        clientInterface.notifyClient(commonNameList);
+                         clientInterface.notifyClient(commonNameList);
 
                 } catch (RemoteException e) {
                     e.printStackTrace();
@@ -1079,25 +1156,129 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 e.printStackTrace();
             }
 
-
-
         return username;
     }
 
 
-    private int getCurrentMonth(){
-        java.util.Date date= new java.util.Date();
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(date);
-        int month = cal.get(Calendar.MONTH);
+    @Override
+    public Credentials getCredentials(String username) throws RemoteException {
+        Credentials credentials = null;
+        String sql = "Select id from account where user = ?";
 
-        return month + 1;
+                try {
+                    connection = connectionPool.getConnection();
+
+                    PreparedStatement ps = connection.prepareStatement(sql);
+                    ps.setString(1,username);
+
+                    ResultSet rs = ps.executeQuery();
+
+                    if (rs.next()){
+                            int accountID = rs.getInt("id");
+                            credentials = generateCredentials(accountID,connection );
+                            System.out.println("Username found from getCredentials");
+
+                    }else {
+                            System.out.println("no Username found from database");
+                    }
+
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }finally {
+                    Utility.closeConnection(connection);
+                }
+        return credentials;
     }
 
-    private LocalDate StringToLocalDate(String date){
-        LocalDate localDate = LocalDate.parse(date);
+    /**
+     *
+     * generate credential if there are no available in database
+     *
+     * @param accountID account id
+     * @param connection sql connection
+     * @return Credential
+     */
+    private Credentials generateCredentials(int accountID, Connection connection){
+        Credentials credentials = null;
+        int remotePort = 0;
+        String remoteID = "";
 
-        return localDate;
+        String sql = "Select remoteport, remoteid from generatedport where accountid=?";
+        String saveCredentials = "Insert into generatedport (accountid, remoteport, remoteid) values (?,?,?)";
+
+        try {
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setInt(1,accountID);
+
+            ResultSet rs = ps.executeQuery();
+
+                    if (rs.next()){
+                         remotePort = rs.getInt("remoteport");
+                         remoteID = rs.getString("remoteid");
+                         setCredentialStatus("Online", accountID, connection);
+                         credentials = new Credentials(remoteID, remotePort);
+                    }else {
+
+                        remotePort = generatePort();
+                        remoteID = generateRemoteID();
+
+                        ps = connection.prepareStatement(saveCredentials);
+                        ps.setInt(1,accountID);
+                        ps.setInt(2,remotePort);
+                        ps.setString(3, remoteID);
+
+                        ps.executeUpdate();
+                        setCredentialStatus("Online", accountID, connection);
+                        credentials = new Credentials(remoteID, remotePort);
+                    }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return credentials;
+    }
+
+    private void setCredentialStatus(String status, int Accountid, Connection connection){
+        String sql = "Update generatedport set status = ? where accountid = ? ";
+
+        try {
+            PreparedStatement ps = connection.prepareStatement(sql);
+
+            ps.setString(1, status);
+            ps.setInt(2, Accountid);
+
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+    }
+    private int generatePort(){
+        int port = 0;
+
+        Random ran = new Random();
+
+        for (int i = 0; i < 10; i++) {
+            port= (10000 + ran.nextInt(50000));
+        }
+
+        return port;
+    }
+
+    private String generateRemoteID(){
+        int ID = 0;
+
+        Random ran = new Random();
+
+        for (int i = 0; i < 10; i++) {
+            ID= (1000 + ran.nextInt(3560));
+        }
+
+        String Remoteid = String.valueOf(ID);
+
+        return Remoteid;
     }
 
 

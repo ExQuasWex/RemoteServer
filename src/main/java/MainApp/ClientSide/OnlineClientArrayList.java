@@ -87,7 +87,6 @@ class OnlineClientArrayList extends ArrayList<OnlineClient> implements Runnable 
 
         }
 
-
     }
 
     public boolean updateUsername(String oldUsername, String newUsername){

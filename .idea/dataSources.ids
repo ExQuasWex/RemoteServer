@@ -5,8 +5,49 @@
       <identifier-quote-string>&quot;</identifier-quote-string>
     </database-info>
     <case-sensitivity plain-identifiers="lower" quoted-identifiers="lower"/>
+    <schema name="ft" catalog="pdss"/>
     <schema name="information_schema" catalog="pdss"/>
     <schema name="public" catalog="pdss"/>
+    <table name="ignorelist" schema="ft" catalog="pdss" type="TABLE">
+      <column name="list" sqlType="varchar" precision="2147483647" scale="0" nullable="true" jdbcType="12"/>
+    </table>
+    <table name="indexes" schema="ft" catalog="pdss" type="TABLE">
+      <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIEZULlNZU1RFTV9TRVFVRU5DRV8xNjgzQjNDM18yOEMwXzQ3ODFfQjQ1NV83Q0FBNjZGMDFFMzQp" autoIncrement="true"/>
+      <column name="schema" sqlType="varchar" precision="2147483647" scale="0" nullable="true" jdbcType="12"/>
+      <column name="table" sqlType="varchar" precision="2147483647" scale="0" nullable="true" jdbcType="12"/>
+      <column name="columns" sqlType="varchar" precision="2147483647" scale="0" nullable="true" jdbcType="12"/>
+      <primary-key name="CONSTRAINT_9" columns="id"/>
+      <index name="constraint_index_9" unique="true" columns="schema,table"/>
+      <index name="primary_key_9" unique="true" columns="id"/>
+    </table>
+    <table name="map" schema="ft" catalog="pdss" type="TABLE">
+      <column name="rowid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
+      <column name="wordid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
+      <primary-key name="CONSTRAINT_1" columns="wordid,rowid"/>
+      <index name="primary_key_1" unique="true" columns="wordid,rowid"/>
+    </table>
+    <table name="rows" schema="ft" catalog="pdss" type="TABLE">
+      <column name="id" sqlType="bigint" precision="19" scale="0" nullable="false" jdbcType="-5" def="KE5FWFQgVkFMVUUgRk9SIEZULlNZU1RFTV9TRVFVRU5DRV9CRDlBNkI2QV80QjNFXzQxREJfOTUwNF8zQjAzRTY2NURBODcp" autoIncrement="true"/>
+      <column name="hash" sqlType="integer" precision="10" scale="0" nullable="true" jdbcType="4"/>
+      <column name="indexid" sqlType="integer" precision="10" scale="0" nullable="true" jdbcType="4"/>
+      <column name="key" sqlType="varchar" precision="2147483647" scale="0" nullable="true" jdbcType="12"/>
+      <primary-key name="CONSTRAINT_2" columns="id"/>
+      <index name="constraint_index_2" unique="true" columns="hash,indexid,key"/>
+      <index name="primary_key_2" unique="true" columns="id"/>
+    </table>
+    <table name="settings" schema="ft" catalog="pdss" type="TABLE">
+      <column name="key" sqlType="varchar" precision="2147483647" scale="0" nullable="false" jdbcType="12"/>
+      <column name="value" sqlType="varchar" precision="2147483647" scale="0" nullable="true" jdbcType="12"/>
+      <primary-key name="CONSTRAINT_8" columns="key"/>
+      <index name="primary_key_8" unique="true" columns="key"/>
+    </table>
+    <table name="words" schema="ft" catalog="pdss" type="TABLE">
+      <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIEZULlNZU1RFTV9TRVFVRU5DRV83MjE5QTg4Ml8yMTM4XzRCNjlfODJFRV8wNTQwMTEwOTEyNzYp" autoIncrement="true"/>
+      <column name="name" sqlType="varchar" precision="2147483647" scale="0" nullable="true" jdbcType="12"/>
+      <primary-key name="CONSTRAINT_4" columns="id"/>
+      <index name="constraint_index_4" unique="true" columns="name"/>
+      <index name="primary_key_4" unique="true" columns="id"/>
+    </table>
     <table name="catalogs" schema="information_schema" catalog="pdss" type="SYSTEM TABLE">
       <column name="catalog_name" sqlType="varchar_ignorecase" precision="2147483647" scale="0" nullable="true" jdbcType="12"/>
     </table>
@@ -338,8 +379,9 @@
       <column name="gender" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
       <column name="accountid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
       <column name="secretinfoid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
+      <column name="address" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
       <primary-key name="CONSTRAINT_3" columns="id"/>
-      <index name="primary_key_3" unique="true" columns="id"/>
+      <index name="primary_key_fe" unique="true" columns="id"/>
     </table>
     <table name="barangay" schema="public" catalog="pdss" type="TABLE">
       <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfQTc1RDI1QkRfRDdGNl80MDNEX0E5NDZfMUY5OTM4QTQ4QkMwKQ==" autoIncrement="true"/>
@@ -355,9 +397,9 @@
       <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfMkI5MzkwNTRfMkMxM180MkRGXzk2NTFfMTc3N0E0NjA2QjQyKQ==" autoIncrement="true"/>
       <column name="name" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
       <column name="address" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
-      <column name="contactno" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <column name="contact" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
       <column name="gender" sqlType="varchar" precision="10" scale="0" nullable="false" jdbcType="12"/>
-      <column name="totalentries" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
+      <column name="totalentries" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="MA=="/>
       <column name="accountid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
       <column name="secretinfoid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
       <primary-key name="CONSTRAINT_7" columns="id"/>
@@ -380,6 +422,15 @@
       <primary-key name="CONSTRAINT_7B" columns="id"/>
       <index name="primary_key_11" unique="true" columns="id"/>
     </table>
+    <table name="generatedport" schema="public" catalog="pdss" type="TABLE">
+      <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfMTExQTMyMDdfNDM3Ql80NUU4X0E3M0VfNDJCQkNDQTk4MjRBKQ==" autoIncrement="true"/>
+      <column name="accountid" sqlType="integer" precision="10" scale="0" nullable="true" jdbcType="4"/>
+      <column name="remoteport" sqlType="integer" precision="10" scale="0" nullable="true" jdbcType="4"/>
+      <column name="remoteid" sqlType="varchar" precision="50" scale="0" nullable="true" jdbcType="12"/>
+      <column name="status" sqlType="varchar" precision="20" scale="0" nullable="true" jdbcType="12"/>
+      <primary-key name="CONSTRAINT_2" columns="id"/>
+      <index name="primary_key_3" unique="true" columns="id"/>
+    </table>
     <table name="keycode" schema="public" catalog="pdss" type="TABLE">
       <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfQ0ExRjY4RDJfOEFEQl80OEY4XzhBQTdfRDlDN0VCQjIwQkQ4KQ==" autoIncrement="true"/>
       <column name="keycode" sqlType="varchar" precision="10" scale="0" nullable="false" jdbcType="12"/>
@@ -401,6 +452,18 @@
       <primary-key name="CONSTRAINT_D" columns="id"/>
       <index name="primary_key_1" unique="true" columns="id"/>
     </table>
+    <table name="request" schema="public" catalog="pdss" type="TABLE">
+      <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfNTc5RTRCNTlfNjFDOV80Q0NFX0EzNzJfMUU5NTEyMzQyNEIyKQ==" autoIncrement="true"/>
+      <column name="name" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <column name="address" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <column name="contact" sqlType="varchar" precision="20" scale="0" nullable="false" jdbcType="12"/>
+      <column name="gender" sqlType="varchar" precision="10" scale="0" nullable="false" jdbcType="12"/>
+      <column name="accountid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
+      <column name="secretinfoid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
+      <primary-key name="CONSTRAINT_6" columns="id"/>
+      <index name="primary_key_b" unique="true" columns="id"/>
+      <index name="unique_accountid_index_b" unique="true" columns="accountid"/>
+    </table>
     <table name="secretinfo" schema="public" catalog="pdss" type="TABLE">
       <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfMUE1REVFODFfOEFGRl80MDg4X0E4RTBfREMwODY0Q0FGREZDKQ==" autoIncrement="true"/>
       <column name="secretquestionid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
@@ -408,5 +471,37 @@
       <primary-key name="CONSTRAINT_C6" columns="id"/>
       <index name="primary_key_c6" unique="true" columns="id"/>
     </table>
+    <procedure name="ft_create_index" schema="PUBLIC" catalog="pdss" type="1">
+      <prototype>
+        <parameter name="P2" sqlType="VARCHAR" precision="2147483647" scale="0" nullable="true" jdbcType="12" type="1" index="1"/>
+        <parameter name="P3" sqlType="VARCHAR" precision="2147483647" scale="0" nullable="true" jdbcType="12" type="1" index="2"/>
+        <parameter name="P4" sqlType="VARCHAR" precision="2147483647" scale="0" nullable="true" jdbcType="12" type="1" index="3"/>
+      </prototype>
+    </procedure>
+    <procedure name="ft_drop_all" schema="PUBLIC" catalog="pdss" type="1"/>
+    <procedure name="ft_drop_index" schema="PUBLIC" catalog="pdss" type="1">
+      <prototype>
+        <parameter name="P2" sqlType="VARCHAR" precision="2147483647" scale="0" nullable="true" jdbcType="12" type="1" index="1"/>
+        <parameter name="P3" sqlType="VARCHAR" precision="2147483647" scale="0" nullable="true" jdbcType="12" type="1" index="2"/>
+      </prototype>
+    </procedure>
+    <procedure name="ft_init" schema="PUBLIC" catalog="pdss" type="1"/>
+    <procedure name="ft_reindex" schema="PUBLIC" catalog="pdss" type="1"/>
+    <procedure name="ft_search" schema="PUBLIC" catalog="pdss" type="2">
+      <prototype>
+        <parameter name="P2" sqlType="VARCHAR" precision="2147483647" scale="0" nullable="true" jdbcType="12" type="1" index="1"/>
+        <parameter name="P3" sqlType="INTEGER" precision="10" scale="0" nullable="false" jdbcType="4" type="1" index="2"/>
+        <parameter name="P4" sqlType="INTEGER" precision="10" scale="0" nullable="false" jdbcType="4" type="1" index="3"/>
+        <parameter name="P0" sqlType="RESULT_SET" precision="0" scale="0" nullable="true" jdbcType="-10" type="5" index="0"/>
+      </prototype>
+    </procedure>
+    <procedure name="ft_search_data" schema="PUBLIC" catalog="pdss" type="2">
+      <prototype>
+        <parameter name="P2" sqlType="VARCHAR" precision="2147483647" scale="0" nullable="true" jdbcType="12" type="1" index="1"/>
+        <parameter name="P3" sqlType="INTEGER" precision="10" scale="0" nullable="false" jdbcType="4" type="1" index="2"/>
+        <parameter name="P4" sqlType="INTEGER" precision="10" scale="0" nullable="false" jdbcType="4" type="1" index="3"/>
+        <parameter name="P0" sqlType="RESULT_SET" precision="0" scale="0" nullable="true" jdbcType="-10" type="5" index="0"/>
+      </prototype>
+    </procedure>
   </data-source>
 </component>
