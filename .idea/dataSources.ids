@@ -427,9 +427,10 @@
       <column name="accountid" sqlType="integer" precision="10" scale="0" nullable="true" jdbcType="4"/>
       <column name="remoteport" sqlType="integer" precision="10" scale="0" nullable="true" jdbcType="4"/>
       <column name="remoteid" sqlType="varchar" precision="50" scale="0" nullable="true" jdbcType="12"/>
+      <column name="ipaddress" sqlType="varchar" precision="50" scale="0" nullable="true" jdbcType="12"/>
       <column name="status" sqlType="varchar" precision="20" scale="0" nullable="true" jdbcType="12"/>
       <primary-key name="CONSTRAINT_2" columns="id"/>
-      <index name="primary_key_3" unique="true" columns="id"/>
+      <index name="primary_key_3b" unique="true" columns="id"/>
     </table>
     <table name="keycode" schema="public" catalog="pdss" type="TABLE">
       <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfQ0ExRjY4RDJfOEFEQl80OEY4XzhBQTdfRDlDN0VCQjIwQkQ4KQ==" autoIncrement="true"/>

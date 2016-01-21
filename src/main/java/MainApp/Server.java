@@ -6,6 +6,8 @@ import RMI.Constant;
 import javafx.application.Application;
 import javafx.scene.control.Alert;
 import javafx.stage.Stage;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
 import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
@@ -21,7 +23,6 @@ public class Server extends Application {
     public  static  void main (String []argh){
 
         StartServer();
-
         Application.launch(argh);
 
     }
@@ -29,6 +30,7 @@ public class Server extends Application {
 
     public static void StartServer(){
         try {
+
 
             ClientDB clientDB = new ClientDB();
             clientDB.StartClientServer();

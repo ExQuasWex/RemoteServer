@@ -57,6 +57,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private final Object ApprovedLock;
     private final Object ApprovedAdminLock;
     private final Object RejectLock;
+    private final Object getCredentialLock;
+    private final Object startUpLock;
 
 
     private String methodIdentifier;
@@ -100,6 +102,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         ApprovedAdminLock = new Object();
         RejectLock = new Object();
 
+        getCredentialLock = new Object();
+        startUpLock = new Object();
 
         connectionPool = JdbcConnectionPool.create(host, user, pass);
         connectionPool.setMaxConnections(40);
@@ -113,6 +117,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
             reg = LocateRegistry.createRegistry(Constant.Remote_port);
             reg.bind(Constant.Remote_ID,this);
 
+            StartUp();
         } catch (RemoteException e) {
             e.printStackTrace();
         } catch (AlreadyBoundException e) {
@@ -121,11 +126,43 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     }
 
     private void StartUp(){
+        String sql = "select * from generatedport where status = 'Online'";
 
-    }
+        synchronized (startUpLock){
 
-    public  boolean checkConnectDB() throws SQLException {
-        boolean isconnected = false;
+                    try {
+                        connection = connectionPool.getConnection();
+
+                        PreparedStatement ps = connection.prepareStatement(sql);
+                        ResultSet rs = ps.executeQuery();
+
+                        while (rs.next()){
+                            int accountID  = rs.getInt("accountid");
+                            int port = rs.getInt("remoteport");
+                            String remoteID = rs.getString("remoteid");
+                            String ip = rs.getString("ipaddress");
+
+                            String username = getUsername(accountID);
+
+                            OnlineClient onlineClient = new OnlineClient(username, ip, port, remoteID);
+
+                            onlineClientArrayList.add(onlineClient);
+
+                        }
+
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }finally {
+                        Utility.closeConnection(connection);
+                    }
+
+            }
+
+
+        }
+
+        public  boolean checkConnectDB() throws SQLException {
+            boolean isconnected = false;
 
                 synchronized (connectionLock){
 
@@ -196,6 +233,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                         } catch (SQLException e) {
                             isUpdated =   false;
                             e.printStackTrace();
+                        }finally {
+                            Utility.closeConnection(connection);
                         }
              }
 
@@ -1161,32 +1200,37 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
 
     @Override
-    public Credentials getCredentials(String username) throws RemoteException {
+    public Credentials getCredentials(String username, String ipAddress) throws RemoteException {
         Credentials credentials = null;
         String sql = "Select id from account where user = ?";
 
-                try {
-                    connection = connectionPool.getConnection();
+                synchronized (getCredentialLock){
+                    this.ipAddress = ipAddress;
 
-                    PreparedStatement ps = connection.prepareStatement(sql);
-                    ps.setString(1,username);
+                    try {
+                            connection = connectionPool.getConnection();
 
-                    ResultSet rs = ps.executeQuery();
+                            PreparedStatement ps = connection.prepareStatement(sql);
+                            ps.setString(1,username);
 
-                    if (rs.next()){
-                            int accountID = rs.getInt("id");
-                            credentials = generateCredentials(accountID,connection );
-                            System.out.println("Username found from getCredentials");
+                            ResultSet rs = ps.executeQuery();
 
-                    }else {
-                            System.out.println("no Username found from database");
-                    }
+                                    if (rs.next()){
+                                        int accountID = rs.getInt("id");
+                                        credentials = generateCredentials(accountID,connection );
+                                        System.out.println("Username found from getCredentials");
 
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }finally {
-                    Utility.closeConnection(connection);
+                                    }else {
+                                        System.out.println("no Username found from database");
+                                    }
+
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                        }finally {
+                            Utility.closeConnection(connection);
+                        }
                 }
+
         return credentials;
     }
 
@@ -1204,7 +1248,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         String remoteID = "";
 
         String sql = "Select remoteport, remoteid from generatedport where accountid=?";
-        String saveCredentials = "Insert into generatedport (accountid, remoteport, remoteid) values (?,?,?)";
+        String saveCredentials = "Insert into generatedport (accountid, remoteport, remoteid, ipaddress) values (?,?,?, ?)";
 
         try {
             PreparedStatement ps = connection.prepareStatement(sql);
@@ -1216,6 +1260,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                          remotePort = rs.getInt("remoteport");
                          remoteID = rs.getString("remoteid");
                          setCredentialStatus("Online", accountID, connection);
+                         updateClientIpAddress(ipAddress, accountID, connection );
                          credentials = new Credentials(remoteID, remotePort);
                     }else {
 
@@ -1224,8 +1269,9 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
                         ps = connection.prepareStatement(saveCredentials);
                         ps.setInt(1,accountID);
-                        ps.setInt(2,remotePort);
+                        ps.setInt(2, remotePort);
                         ps.setString(3, remoteID);
+                        ps.setString(4, ipAddress);
 
                         ps.executeUpdate();
                         setCredentialStatus("Online", accountID, connection);
@@ -1237,6 +1283,23 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         }
 
         return credentials;
+    }
+
+    private void updateClientIpAddress(String ipaddress, int accountID, Connection connection){
+
+        String sql = "Update generatedport set ipaddress = ?where accountid = ?";
+
+        try {
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, ipaddress);
+            ps.setInt(2, accountID);
+
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     private void setCredentialStatus(String status, int Accountid, Connection connection){
