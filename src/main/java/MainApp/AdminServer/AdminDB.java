@@ -7,7 +7,9 @@ import RMI.AdminInterface;
 import RMI.Constant;
 import Remote.Method.FamilyModel.FamilyPoverty;
 import org.h2.jdbcx.JdbcConnectionPool;
+import utility.Utility;
 
+import javax.rmi.CORBA.Util;
 import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -94,7 +96,10 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
         OverViewReportObject overViewReportObject = null ;
 
         String povertyFactorSQL = "Select * from povertyfactors where year like '2016%'";
-        String povertyRateSQL = "Select name, unresolvepopulation  from barangay  where date like '2016%'";
+        String povertyRateSQL = "SELECT name,  sum(unresolvepopulation) as unresolvepopulation\n" +
+                "FROM barangay\n" +
+                "WHERE date LIKE '2016%' GROUP BY name \n";
+
             synchronized (overviewLock){
 
                     try {
@@ -107,20 +112,20 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
                             while (factorRS.next()){
 
-                                String year = factorRS.getString("year");
-                                int month = factorRS.getInt("month");
-                                String occu = factorRS.getString("occupancy");
-                                String schoolChildren = factorRS.getString("schoolchildren");
-                                String underEmployed = factorRS.getString("underemployed");
-                                String otherincome = factorRS.getString("otherincome");
-                                String threshold = factorRS.getString("threshold");
-                                String ownership = factorRS.getString("ownership");
-
-                                LocalDate date = StringToLocalDate(year);
-                                FamilyPoverty poverty = new FamilyPoverty(otherincome, threshold,
-                                        ownership, occu, underEmployed, schoolChildren, date, month );
-
-                                factorList.add(poverty);
+//                                String year = factorRS.getString("year");
+//                                int month = factorRS.getInt("month");
+//                                String occu = factorRS.getString("occupancy");
+//                                String schoolChildren = factorRS.getString("schoolchildren");
+//                                String underEmployed = factorRS.getString("underemployed");
+//                                String otherincome = factorRS.getString("otherincome");
+//                                String threshold = factorRS.getString("threshold");
+//                                String ownership = factorRS.getString("ownership");
+//
+//                                LocalDate date = StringToLocalDate(year);
+//                                FamilyPoverty poverty = new FamilyPoverty(otherincome, threshold,
+//                                        ownership, occu, underEmployed, schoolChildren, date, month );
+//
+//                                factorList.add(poverty);
 
                             }
                             while (povertyRS.next()){
@@ -137,6 +142,8 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
                     } catch (SQLException e) {
                         e.printStackTrace();
+                    }finally {
+                        Utility.closeConnection(connection);
                     }
             }
 

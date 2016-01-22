@@ -78,7 +78,6 @@ class OnlineClientArrayList extends ArrayList<OnlineClient> implements Runnable 
                     System.out.println(client.getUsername() + " is Now offline");
                     e.printStackTrace();
 
-
                 } catch (NotBoundException e) {
                     e.printStackTrace();
                 }

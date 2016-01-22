@@ -676,6 +676,12 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                                 staffInfo.setPassword(globalPassword);
                                 staffInfo.setAddress("");
                                 staffInfo.setContact(contact);
+
+                    // add this account to list
+                    OnlineClient onlineClient = new OnlineClient(username,ipAddress, PORT, REMOTE_ID);
+                    onlineClientArrayList.add(onlineClient);
+                    System.out.println("first online");
+
                     System.out.println("successfully login ass admin");
 
             }catch (SQLException e) {
