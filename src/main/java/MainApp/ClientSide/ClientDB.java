@@ -114,10 +114,12 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
         Registry reg = null;
         try {
+
+            StartUp();
+
             reg = LocateRegistry.createRegistry(Constant.Remote_port);
             reg.bind(Constant.Remote_ID,this);
 
-            StartUp();
         } catch (RemoteException e) {
             e.printStackTrace();
         } catch (AlreadyBoundException e) {
@@ -1171,7 +1173,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                         ArrayList commonNameList = searchedList(family.getFamilyinfo().getName());
 
                           System.out.println("family name from notif : " + family.getFamilyinfo().getName()) ;
-                         clientInterface.notifyClient(commonNameList);
+                          clientInterface.notifyClient(commonNameList);
 
                 } catch (RemoteException e) {
                     e.printStackTrace();

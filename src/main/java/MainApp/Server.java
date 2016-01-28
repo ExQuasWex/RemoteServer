@@ -3,12 +3,25 @@ package MainApp;
 import MainApp.AdminServer.AdminDB;
 import MainApp.ClientSide.ClientDB;
 import RMI.Constant;
+import com.sun.imageio.plugins.common.ImageUtil;
 import javafx.application.Application;
-import javafx.scene.control.Alert;
+import javafx.application.Platform;
+import javafx.scene.control.*;
 import javafx.stage.Stage;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import utility.Utility;
 
+import javax.imageio.ImageIO;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.MenuItem;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
 import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -22,11 +35,9 @@ public class Server extends Application {
 
     public  static  void main (String []argh){
 
-        StartServer();
         Application.launch(argh);
 
     }
-
 
     public static void StartServer(){
         try {
@@ -57,28 +68,66 @@ public class Server extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-//        AdminFrame adminFrame = new AdminFrame();
-//        adminFrame.show();
-//
-//        adminFrame.setOnCloseRequest(new EventHandler<WindowEvent>() {
-//            @Override
-//            public void handle(WindowEvent event) {
-//                System.exit(1);
-//            }
-//        });
-
-        showStartUpMessage();
+        StartServer();
+        addServerToTrayIcon();
     }
 
-    private void showStartUpMessage(){
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Information Dialog");
-        alert.setHeaderText(null);
-        alert.setContentText("Server is now Running, after you press OK im still running on the background" +
-                " Terminate me manually on windows task Manager Under process command 'Java.exe'");
 
-        alert.showAndWait();
+    private void addServerToTrayIcon(){
+        String trayNotSupported = "No system tray support, application exiting.";
+
+        if (!java.awt.SystemTray.isSupported()) {
+            Utility.showMessageBox(trayNotSupported, Alert.AlertType.INFORMATION);
+            Platform.exit();
+        }
+
+        Image img = null;
+        SystemTray tray = SystemTray.getSystemTray();
+
+        img = Toolkit.getDefaultToolkit().getImage("src/main/java/images/server.png");
+
+        Dimension traySize = tray.getTrayIconSize();
+        img = img.getScaledInstance(traySize.width, traySize.height, Image.SCALE_SMOOTH);
+
+        TrayIcon trayIcon = new TrayIcon(img);
+
+
+        // add some pop up menu
+        final java.awt.PopupMenu popup = new java.awt.PopupMenu();
+        MenuItem exitItem = new MenuItem("Exit Server");
+        popup.add(exitItem);
+
+        trayIcon.setPopupMenu(popup);
+
+        // if the trayIcon doubled-click show some dialog/stage
+        trayIcon.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+            }
+        });
+
+
+        exitItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                tray.remove(trayIcon);
+                System.exit(0);
+            }
+        });
+
+        // add trayAIcon to tray
+        try {
+            tray.add(trayIcon);
+            trayIcon.displayMessage("Server","Poverty Decision Support System  Server is now Running", TrayIcon.MessageType.INFO);
+        } catch (AWTException e) {
+            e.printStackTrace();
+        }
+
+
     }
+
+
 
 
     private static void RemoteMessageException(){

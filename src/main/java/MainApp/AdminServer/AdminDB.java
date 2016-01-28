@@ -1,15 +1,17 @@
 package MainApp.AdminServer;
 
-import AdminModel.BarangayData;
-import AdminModel.OverViewReportObject;
+import AdminModel.Report.Children.Model.ResponseCompareOverview;
+import AdminModel.Report.Children.Model.ResponsePovertyFactor;
+import AdminModel.Report.Children.Model.ResponsePovertyRate;
 import AdminModel.Params;
+import AdminModel.Report.Parent.Model.ResponseOverviewReport;
 import RMI.AdminInterface;
 import RMI.Constant;
 import Remote.Method.FamilyModel.FamilyPoverty;
+import com.sun.deploy.nativesandbox.comm.Response;
 import org.h2.jdbcx.JdbcConnectionPool;
 import utility.Utility;
 
-import javax.rmi.CORBA.Util;
 import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -38,6 +40,8 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
     private Object connectionLock;
     private Object overviewLock;
 
+
+    private String overViewSQL;
     public AdminDB() throws RemoteException {
 
         connectionLock = new Object();
@@ -48,6 +52,32 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                 connectionPool = JdbcConnectionPool.create(host, user, pass);
 
 
+        overViewSQL= "SELECT\n" +
+                "  sum(CASE\n" +
+                "      WHEN occupancy ='Unemployed' THEN 1\n" +
+                "      ELSE 0\n" +
+                "      END) as unemployed,\n" +
+                "\n" +
+                "  sum( CASE\n" +
+                "       WHEN underemployed = 'Yes' THEN 1\n" +
+                "       ELSE 0\n" +
+                "       END)as Underemployed,\n" +
+                "  sum( CASE\n" +
+                "       WHEN otherincome = 'No' THEN +1\n" +
+                "       ELSE 0\n" +
+                "       END)as NoExtra,\n" +
+                "  sum( CASE\n" +
+                "       WHEN threshold = 'No' THEN +1\n" +
+                "       ELSE 0\n" +
+                "       END)as BelowMinimum,\n" +
+                "  sum( CASE\n" +
+                "       WHEN (ownership = 'Rental' or ownership = 'Shared' or ownership = 'Informal settler') THEN +1\n" +
+                "       ELSE 0\n" +
+                "       END)as NOshELTER\n" +
+                "\n" +
+                "\n" +
+                "from povertyfactors where year like '2016%'";
+
     }
 
     public void StartAdminServer(){
@@ -56,6 +86,8 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
         try {
             Registry reg2 = LocateRegistry.createRegistry(Constant.Adminport);
             reg2.bind(Constant.RMIAdminID, this);
+
+            getYears();
 
         } catch (RemoteException e) {
             e.printStackTrace();
@@ -90,15 +122,16 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
     }
 
     @Override
-    public OverViewReportObject getOverViewData(Params params, String type) throws RemoteException {
+    public ResponseOverviewReport getOverViewData(Params params, String type) throws RemoteException {
         ArrayList povertyList = new ArrayList();
         ArrayList factorList = new ArrayList();
-        OverViewReportObject overViewReportObject = null ;
+        ResponseOverviewReport responseOverviewReport = null ;
 
-        String povertyFactorSQL = "Select * from povertyfactors where year like '2016%'";
+        String year = Utility.getCurrentYear();
+        String povertyFactorSQL = overViewSQL;
         String povertyRateSQL = "SELECT name,  sum(unresolvepopulation) as unresolvepopulation\n" +
                 "FROM barangay\n" +
-                "WHERE date LIKE '2016%' GROUP BY name \n";
+                "WHERE date LIKE ? GROUP BY name \n";
 
             synchronized (overviewLock){
 
@@ -106,39 +139,38 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                         connection = connectionPool.getConnection();
                         PreparedStatement povertyFactorPS = connection.prepareStatement(povertyFactorSQL);
                         PreparedStatement povertyRatePS = connection.prepareStatement(povertyRateSQL);
+                        povertyRatePS.setString(1,year + "%");
 
                         ResultSet factorRS = povertyFactorPS.executeQuery();
-                        ResultSet povertyRS = povertyRatePS.executeQuery();
 
                             while (factorRS.next()){
 
-//                                String year = factorRS.getString("year");
-//                                int month = factorRS.getInt("month");
-//                                String occu = factorRS.getString("occupancy");
-//                                String schoolChildren = factorRS.getString("schoolchildren");
-//                                String underEmployed = factorRS.getString("underemployed");
-//                                String otherincome = factorRS.getString("otherincome");
-//                                String threshold = factorRS.getString("threshold");
-//                                String ownership = factorRS.getString("ownership");
-//
-//                                LocalDate date = StringToLocalDate(year);
-//                                FamilyPoverty poverty = new FamilyPoverty(otherincome, threshold,
-//                                        ownership, occu, underEmployed, schoolChildren, date, month );
-//
-//                                factorList.add(poverty);
+                                int unemployed = factorRS.getInt("Unemployed");
+                                int underEmployed = factorRS.getInt("UnderEmployed");
+                                int noextra = factorRS.getInt("NoExtra");
+                                int BelowMinimum = factorRS.getInt("BelowMinimum");
+                                int NoShelter = factorRS.getInt("NoShelter");
 
+
+                            ResponsePovertyFactor povertyRate  =
+                                    new ResponsePovertyFactor(unemployed, underEmployed, noextra, BelowMinimum, NoShelter );
+
+                                factorList.add(povertyRate);
                             }
-                            while (povertyRS.next()){
+
+                        ResultSet povertyRS = povertyRatePS.executeQuery();
+
+                        while (povertyRS.next()){
                                 String brngayName = povertyRS.getString("name");
                                 int unresolvePopulation = povertyRS.getInt("unresolvepopulation");
 
-                                BarangayData bd = new BarangayData(brngayName, unresolvePopulation);
+                                ResponsePovertyRate bd = new ResponsePovertyRate(brngayName, unresolvePopulation);
 
                                 povertyList.add(bd);
 
                             }
 
-                        overViewReportObject = new OverViewReportObject(factorList, povertyList);
+                        responseOverviewReport = new ResponseOverviewReport(factorList, povertyList);
 
                     } catch (SQLException e) {
                         e.printStackTrace();
@@ -147,12 +179,41 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                     }
             }
 
-        return overViewReportObject;
+        return responseOverviewReport;
     }
 
     @Override
-    public ArrayList getCompareOverViewData(Params params, String type) throws RemoteException {
-        return null;
+    public ResponseCompareOverview getCompareOverViewData(Params params, String type) throws RemoteException {
+        ResponseCompareOverview compareOverview = null;
+        String sql = "SELECT  sum(unresolvepopulation) as unresolvepopulation\n" +
+                "FROM barangay WHERE date LIKE ? ";
+
+        try {
+            connection = connectionPool.getConnection();
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, String.valueOf(params.getYear()) + "%");
+
+            ResultSet rs = ps.executeQuery();
+            rs.next();
+            int povertyRateYearOne = rs.getInt("unresolvepopulation");
+
+            // getting total poverty rate year 2
+            ps.setString(1, String.valueOf(params.getMaxYear())+ "%");
+            rs = ps.executeQuery();
+            rs.next();
+            int povertyRateYearTwo = rs.getInt("unresolvepopulation");
+
+          compareOverview =  new ResponseCompareOverview(povertyRateYearOne, povertyRateYearTwo);
+
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            Utility.closeConnection(connection);
+        }
+
+
+        return compareOverview;
     }
 
     @Override
@@ -171,8 +232,37 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
     }
 
     @Override
+    public ArrayList getYears() throws RemoteException {
+        ArrayList yearList = new ArrayList();
+        String sql = "Select date from barangay ";
+
+        // add Sycnhronization
+        try {
+            connection = connectionPool.getConnection();
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()){
+                String year = rs.getString("date").substring(0,4);
+                if (!yearList.contains(year)){
+                    yearList.add(year);
+                }
+            }
+
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            Utility.closeConnection(connection);
+        }
+
+        return yearList;
+    }
+
+    @Override
     public ArrayList getBarangayData() throws RemoteException {
-        ArrayList<BarangayData>  barangayDataList= new ArrayList<BarangayData>();
+        ArrayList<ResponsePovertyRate> responsePovertyRateList = new ArrayList<ResponsePovertyRate>();
 
                 synchronized (lock1){
 
@@ -180,18 +270,20 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
                         connection = connectionPool.getConnection();
                         //  Select name, date,  SUM(unresolvepopulation) from barangay where date = 2014 GROUP BY name,date
-                        String sql = "Select name, date,  SUM(unresolvepopulation) as total from barangay where date Like  '2015%'GROUP BY name,date";
+                        String sql = "SELECT name,  sum(unresolvepopulation) as unresolvepopulation\n" +
+                                "FROM barangay\n" +
+                                "WHERE date LIKE ? GROUP BY name \n";;
                         PreparedStatement ps = connection.prepareStatement(sql);
+                        ps.setString(1, Utility.getCurrentYear() + "%");
                         ResultSet rs = ps.executeQuery();
 
 
                         while (rs.next()){
-                            String barangayName = rs.getString("name");
-                            String  date = rs.getString("date");
-                            int UnresPopu = rs.getInt("total");
+                            String brngayName = rs.getString("name");
+                            int unresolvePopulation = rs.getInt("unresolvepopulation");
 
-                            BarangayData bd = new BarangayData(barangayName,UnresPopu);
-                            barangayDataList.add(bd);
+                            ResponsePovertyRate bd = new ResponsePovertyRate(brngayName,unresolvePopulation);
+                            responsePovertyRateList.add(bd);
 
                         }
 
@@ -203,7 +295,7 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
                 }
 
-        return barangayDataList;
+        return responsePovertyRateList;
     }
 
 

@@ -1,14 +1,15 @@
 <component name="ArtifactManager">
   <artifact type="jar" name="RemoteServer:jar">
-    <output-path>$USER_HOME$/Desktop</output-path>
+    <output-path>$USER_HOME$/Desktop/</output-path>
     <root id="archive" name="RemoteServer.jar">
       <element id="directory" name="META-INF">
-        <element id="file-copy" path="$USER_HOME$/Desktop/META-INF/MANIFEST.MF" />
+        <element id="file-copy" path="$PROJECT_DIR$/../RemoteMethod/src/META-INF/MANIFEST.MF" />
       </element>
       <element id="module-output" name="RemoteServer" />
       <element id="module-output" name="RemoteMethod" />
-      <element id="library" level="application" name="RemoteServer" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/h2database/h2/1.4.187/h2-1.4.187.jar" path-in-jar="/" />
+      <element id="library" level="application" name="RemoteServer" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/log4j/log4j/1.2.17/log4j-1.2.17.jar" path-in-jar="/" />
     </root>
   </artifact>
 </component>
