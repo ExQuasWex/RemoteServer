@@ -372,17 +372,6 @@
       <primary-key name="CONSTRAINT_E" columns="id"/>
       <index name="primary_key_a" unique="true" columns="id"/>
     </table>
-    <table name="admin" schema="public" catalog="pdss" type="TABLE">
-      <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfNUE2RDhBODZfQjREOV80MDVFX0JFRjRfNTJFN0UzQzg0OUQ5KQ==" autoIncrement="true"/>
-      <column name="name" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
-      <column name="contact" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
-      <column name="gender" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
-      <column name="accountid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
-      <column name="secretinfoid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
-      <column name="address" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
-      <primary-key name="CONSTRAINT_3" columns="id"/>
-      <index name="primary_key_fe" unique="true" columns="id"/>
-    </table>
     <table name="barangay" schema="public" catalog="pdss" type="TABLE">
       <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfQTc1RDI1QkRfRDdGNl80MDNEX0E5NDZfMUY5OTM4QTQ4QkMwKQ==" autoIncrement="true"/>
       <column name="name" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
@@ -431,13 +420,6 @@
       <column name="status" sqlType="varchar" precision="20" scale="0" nullable="true" jdbcType="12"/>
       <primary-key name="CONSTRAINT_2" columns="id"/>
       <index name="primary_key_3b" unique="true" columns="id"/>
-    </table>
-    <table name="keycode" schema="public" catalog="pdss" type="TABLE">
-      <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfQ0ExRjY4RDJfOEFEQl80OEY4XzhBQTdfRDlDN0VCQjIwQkQ4KQ==" autoIncrement="true"/>
-      <column name="keycode" sqlType="varchar" precision="10" scale="0" nullable="false" jdbcType="12"/>
-      <column name="status" sqlType="varchar" precision="10" scale="0" nullable="false" jdbcType="12"/>
-      <primary-key name="CONSTRAINT_F" columns="id"/>
-      <index name="primary_key_f" unique="true" columns="id"/>
     </table>
     <table name="povertyfactors" schema="public" catalog="pdss" type="TABLE">
       <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfODQyQTlBODdfODYwRl80RUNGX0EzNkJfRkQwQjUyQ0Q5OTA1KQ==" autoIncrement="true"/>

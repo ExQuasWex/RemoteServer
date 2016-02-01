@@ -5,6 +5,7 @@ import AdminModel.Report.Children.Model.ResponsePovertyFactor;
 import AdminModel.Report.Children.Model.ResponsePovertyRate;
 import AdminModel.Params;
 import AdminModel.Report.Parent.Model.ResponseOverviewReport;
+import AdminModel.ResponseModel.BarangayFamily;
 import RMI.AdminInterface;
 import RMI.Constant;
 import Remote.Method.FamilyModel.FamilyPoverty;
@@ -303,6 +304,42 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
         LocalDate localDate = LocalDate.parse(date);
 
         return localDate;
+    }
+
+    @Override
+    public ArrayList getFamilyBarangay(Params params) throws RemoteException {
+        ArrayList<BarangayFamily> list = new ArrayList();
+        String sql = "Select id, name, spouse, date from family where barangayid in \n" +
+                "(Select id from barangay where name = ?  and date Like ? and month = ?)";
+
+        try {
+            connection =connectionPool.getConnection();
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, params.getBarangay1());
+            ps.setString(2, String.valueOf(params.getYear()) + "%");
+            ps.setString(3,  String.valueOf(params.getMonth()));
+
+            ResultSet rs = ps.executeQuery();
+
+            while(rs.next()){
+                int id = rs.getInt("id");
+                String name = rs.getString("name");
+                String spousename = rs.getString("spouse");
+                String date = rs.getString("date");
+
+                BarangayFamily barangayFamily = new BarangayFamily(id, name, spousename, date);
+                list.add(barangayFamily);
+
+            }
+
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            Utility.closeConnection(connection);
+        }
+
+        return list;
     }
 
 

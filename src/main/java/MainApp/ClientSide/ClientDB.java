@@ -1,5 +1,6 @@
 package MainApp.ClientSide;
 
+import AdminModel.Params;
 import AdminModel.RequestAccounts;
 import RMI.ClientInterface;
 import RMI.Constant;
@@ -10,12 +11,14 @@ import Remote.Method.FamilyModel.FamilyInfo;
 
 import clientModel.StaffInfo;
 import clientModel.StaffRegister;
-import com.sun.org.apache.bcel.internal.generic.IF_ACMPEQ;
 import global.Credentials;
 import global.OnlineClient;
+import global.SecretDetails;
 import org.h2.jdbcx.JdbcConnectionPool;
+import utility.TimedRMIclientSocketFactory;
 import utility.Utility;
 
+import java.awt.image.AreaAveragingScaleFilter;
 import java.rmi.AlreadyBoundException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -23,7 +26,6 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.sql.*;
-import java.sql.Date;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -59,6 +61,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private final Object RejectLock;
     private final Object getCredentialLock;
     private final Object startUpLock;
+    private final Object securityQustionLock;
 
 
     private String methodIdentifier;
@@ -97,6 +100,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         connectionLock = new Object();
         pendingAccountLock = new Object();
         requestAccountLock = new Object();
+        securityQustionLock = new Object();
 
         ApprovedLock = new Object();
         ApprovedAdminLock = new Object();
@@ -448,7 +452,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                             int row = ps.executeUpdate();
 
 
-                                    if (row >= 1 && TransferInformation(ra.getId(), "client")){
+                                    if (row >= 1 && TransferInformation(ra.getId())){
                                         isApproved = true;
                                     }else {
                                         isApproved = false;
@@ -480,7 +484,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
                                 int row  = ps.executeUpdate();
 
-                                            if (row >= 1 && TransferInformation(ra.getId(), "admin")){
+                                            if (row >= 1 && TransferInformation(ra.getId())){
                                                 isActivated = true;
 
                                             }else {
@@ -538,9 +542,9 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     }
 
 
-    private boolean  TransferInformation(int accountID, String tableName){
+    private boolean  TransferInformation(int accountID ){
         String getClientInfo = "Select * from request where accountid = ?";
-        String sqlTransfer = "Insert into " + tableName + "(Name, Address, contact, Gender, AccountID, SecretInfoID) VALUES (?,?,?,?,?,?)";
+        String sqlTransfer = "Insert into client (Name, Address, contact, Gender, AccountID, SecretInfoID) VALUES (?,?,?,?,?,?)";
         try {
             Connection connection = connectionPool.getConnection();
             PreparedStatement ps = connection.prepareStatement(getClientInfo);
@@ -623,13 +627,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                         updatePS.setString(3, pass);
                         updatePS.executeUpdate();
 
-                        // decide whether admin or client to return
-                                    if (role.equals("Client")){
-                                                staffInfo = getClientInformation(connection);
-                                            }
-                                    else if (role.equals("Admin")){
-                                                staffInfo = getAdminInfo(connection);
-                                    }
+                             staffInfo = getUserInformation(connection);
+
 
                     // record did not match
                     }else{
@@ -654,49 +653,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
 
     // SYNCHRONIZATION DEPENDS ON LOGINN
-    private StaffInfo getAdminInfo(Connection connection) throws SQLException {
-        StaffInfo  staffInfo = new StaffInfo(false,0,null, null,null,null,null,null,null,0);
-
-        try {
-
-            String sql = "Select name,contact from admin where accountId = ?";
-                    PreparedStatement ps = connection.prepareStatement(sql);
-                    ps.setInt(1, AccountID);
-
-                    ResultSet rs = ps.executeQuery();
-                    rs.next();
-
-                    String name = rs.getString("Name");
-                    String contact = rs.getString("Contact");
-
-                                staffInfo.setAccountExist(true);
-                                staffInfo.setAccountID(AccountID);
-                                staffInfo.setStatus("offline");
-                                staffInfo.setRole(role);
-                                staffInfo.setName(name);
-                                staffInfo.setUsername(username);
-                                staffInfo.setPassword(globalPassword);
-                                staffInfo.setAddress("");
-                                staffInfo.setContact(contact);
-
-                    // add this account to list
-                    OnlineClient onlineClient = new OnlineClient(username,ipAddress, PORT, REMOTE_ID);
-                    onlineClientArrayList.add(onlineClient);
-                    System.out.println("first online");
-
-                    System.out.println("successfully login ass admin");
-
-            }catch (SQLException e) {
-                    e.printStackTrace();
-            }
-
-
-        return staffInfo;
-    }
-
-
-    // SYNCHRONIZATION DEPENDS ON LOGINN
-    private StaffInfo getClientInformation(Connection connection){
+    private StaffInfo getUserInformation(Connection connection){
         StaffInfo  staffInfo = new StaffInfo(false,0,null, null,null,null,null,null,null,0);
 
         int x = 0;
@@ -1241,6 +1198,60 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
         return credentials;
     }
+
+    @Override
+    public SecretDetails getSecurityQuestion(String hint1) throws RemoteException {
+        String password = "";
+        int secretID = 0;
+        SecretDetails secretDetails = null;
+
+        String secretSQL = "Select secretquestionid, secretanswer from secretinfo where id = ?";
+        String sql = "Select secretinfoID, A.password from client C\n" +
+                "  Left Join account A\n" +
+                "  On A.id = C.accountid \n" +
+                "\n" +
+                "where A.user = ?";
+
+            synchronized (securityQustionLock){
+
+                try {
+                    connection = connectionPool.getConnection();
+                    PreparedStatement ps = connection.prepareStatement(sql);
+                    ps.setString(1, hint1);
+
+                    ResultSet rs = ps.executeQuery();
+
+                          if (rs.next()){
+                              secretID = rs.getInt("secretinfoID");
+
+                              ps = connection.prepareStatement(secretSQL);
+                              ps.setInt(1, secretID);
+
+                              password = rs.getString("password");
+
+                              rs = ps.executeQuery();
+
+                                  if (rs.next()){
+                                      int secretId = rs.getInt("secretquestionid");
+                                      String secretAns = rs.getString("secretanswer");
+
+                                      secretDetails = new SecretDetails(secretId, secretAns, password);
+                                  }
+
+                          }
+
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }finally {
+                    Utility.closeConnection(connection);
+                }
+
+            }
+
+        return secretDetails;
+    }
+
+
 
     /**
      *

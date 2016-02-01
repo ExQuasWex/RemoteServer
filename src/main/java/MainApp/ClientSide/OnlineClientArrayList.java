@@ -3,6 +3,7 @@ package MainApp.ClientSide;
 import RMI.ClientInterface;
 import RMI.Constant;
 import global.OnlineClient;
+import utility.TimedRMIclientSocketFactory;
 
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -17,7 +18,7 @@ import java.util.Iterator;
  */
 class OnlineClientArrayList extends ArrayList<OnlineClient> implements Runnable {
 
-    private  TimedRMIclientSocketFactory csf;
+    private TimedRMIclientSocketFactory csf;
     private  int x = 0;
     private Registry reg;
     private Thread thread;

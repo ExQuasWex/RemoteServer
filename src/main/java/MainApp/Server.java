@@ -116,6 +116,8 @@ public class Server extends Application {
             }
         });
 
+
+
         // add trayAIcon to tray
         try {
             tray.add(trayIcon);
@@ -126,7 +128,6 @@ public class Server extends Application {
 
 
     }
-
 
 
 
