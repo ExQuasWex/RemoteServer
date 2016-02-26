@@ -41,9 +41,6 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
     private Object overviewLock;
     private Object activeAccount;
 
-//Specific overview
-    private String povertySingleBarangay;
-
     private BarangayData barangayData = new BarangayData();
     private PovertyFactorsData povertyFactorsData = new PovertyFactorsData();
 
@@ -57,13 +54,7 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
         connectionPool = Database.getConnectionPool();
         Database.setMaxConnection(40);
 
-//-------- Specific overview  // --- ///
-
-       povertySingleBarangay =  "SELECT name, date, sum(unresolvepopulation) as unresolvepopulation\n" +
-                "FROM barangay" +
-                "WHERE name = ? and date LIKE ? GROUP BY date";
     }
-
 
     public void StartAdminServer(){
 

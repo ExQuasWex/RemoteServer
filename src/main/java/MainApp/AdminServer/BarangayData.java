@@ -6,6 +6,7 @@ import AdminModel.Report.Children.Model.ResponsePovertyFactor;
 import AdminModel.Report.Children.Model.ResponsePovertyRate;
 import MainApp.DataBase.Database;
 import org.h2.jdbcx.JdbcConnectionPool;
+import utility.Logger;
 import utility.Utility;
 
 import java.sql.Connection;
@@ -29,7 +30,6 @@ public class BarangayData {
 
     // compare specific sql
     private String povertyPopulationOfBarangay;
-
 
 
     public BarangayData() {
@@ -139,14 +139,15 @@ public class BarangayData {
         Connection connection = null;
         ArrayList list = new ArrayList();
 
-        String sql = "SELECT name, sum(unresolvepopulation) as unresolvepopulation\n" +
-                "FROM barangay WHERE name = ? and date LIKE ? GROUP BY date";
+        String sql = "SELECT  date, sum(unresolvepopulation) as unresolvepopulation\n" +
+                "FROM barangay WHERE name = ? and date LIKE ? GROUP BY date order by date";
 
         try {
             connection = connectionPool.getConnection();
 
             PreparedStatement ps = connection.prepareStatement(sql);
             ps.setString(1, params.getBarangay1());
+            ps.setString(2, String.valueOf(params.getYear()) + "%");
 
             ResultSet rs = ps.executeQuery();
 
@@ -161,7 +162,6 @@ public class BarangayData {
                 list.add(monthlyPovertyRate);
 
             }
-
 
         } catch (SQLException e) {
             e.printStackTrace();

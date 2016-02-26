@@ -3,6 +3,7 @@ package MainApp.AdminServer;
 import AdminModel.Report.Children.Model.ResponsePovertyFactor;
 import MainApp.DataBase.Database;
 import org.h2.jdbcx.JdbcConnectionPool;
+import utility.Logger;
 import utility.Utility;
 
 import java.sql.Connection;
@@ -90,7 +91,7 @@ public class PovertyFactorsData {
 
 
         // specific overview
-        povertyFactorsSpecificOverview = "SELECT  f.date,\n" +
+        povertyFactorsSpecificOverview = "SELECT  B.date,\n" +
                 "  sum(CASE\n" +
                 "      WHEN occupancy ='Unemployed' THEN 1\n" +
                 "      ELSE 0\n" +
@@ -112,11 +113,10 @@ public class PovertyFactorsData {
                 "       ELSE 0\n" +
                 "       END)as NOshELTER\n" +
                 "from povertyfactors P\n" +
-                "\n" +
-                "  LEFT JOIN family F ON F.id = P.familyid \n" +
-                "  \n" +
-                "where f.barangayid in (Select id from barangay where name = ? and date like ? GROUP BY date)\n" +
-                "GROUP BY P.Year\n";
+                "  LEFT JOIN family F ON F.id = P.familyid\n" +
+                "  LEFT JOIN Barangay B ON F.barangayid = B.id\n" +
+                "where f.barangayid in (Select id from barangay where name = ? and date like ?)\n" +
+                " GROUP BY B.id";
 
     }
 
@@ -133,7 +133,6 @@ public class PovertyFactorsData {
             ResultSet rs = PS.executeQuery();
 
             while (rs.next()){
-
                 int unemployed = rs.getInt("Unemployed");
                 int underEmployed = rs.getInt("UnderEmployed");
                 int noextra = rs.getInt("NoExtra");
@@ -210,15 +209,19 @@ public class PovertyFactorsData {
             ResultSet rs = PS.executeQuery();
 
             while (rs.next()){
-
+                String date = rs.getString("date");
                 int unemployed = rs.getInt("Unemployed");
                 int underEmployed = rs.getInt("UnderEmployed");
                 int noextra = rs.getInt("NoExtra");
                 int BelowMinimum = rs.getInt("BelowMinimum");
                 int NoShelter = rs.getInt("NoShelter");
 
+                date = Utility.convertIntMonth(date);
+
+                Logger.Log(date);
+
                 ResponsePovertyFactor povertyRate  =
-                        new ResponsePovertyFactor(unemployed, underEmployed, noextra, BelowMinimum, NoShelter );
+                        new ResponsePovertyFactor(unemployed, underEmployed, noextra, BelowMinimum, NoShelter, date );
 
                 factorList.add(povertyRate);
             }
