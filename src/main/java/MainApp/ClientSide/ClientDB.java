@@ -2,6 +2,8 @@ package MainApp.ClientSide;
 
 import AdminModel.Params;
 import AdminModel.RequestAccounts;
+import MainApp.ClientIntefaceFactory;
+import MainApp.DataBase.Database;
 import RMI.ClientInterface;
 import RMI.Constant;
 import RMI.RemoteMethods;
@@ -9,16 +11,17 @@ import  Remote.Method.FamilyModel.Family;
 import Remote.Method.FamilyModel.FamilyPoverty;
 import Remote.Method.FamilyModel.FamilyInfo;
 
+import clientModel.ClientEntries;
 import clientModel.StaffInfo;
 import clientModel.StaffRegister;
 import global.Credentials;
 import global.OnlineClient;
 import global.SecretDetails;
 import org.h2.jdbcx.JdbcConnectionPool;
+import utility.Logger;
 import utility.TimedRMIclientSocketFactory;
 import utility.Utility;
 
-import java.awt.image.AreaAveragingScaleFilter;
 import java.rmi.AlreadyBoundException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -31,18 +34,13 @@ import java.util.*;
 
 /**
  * Created by Didoy on 8/24/2015.
- * slack test
+ *
  */
 
 
 public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
     private boolean isRegistered;
-
-    private Connection connection;
-    private final String host = "jdbc:h2:file:c:/pdsss/database/pdss;Mode=MySQL;LOCK_MODE=1";
-    private final String user = "admin";
-    private final String pass = "admin";
 
     private final Object lock1;
     private final Object lock2;
@@ -62,14 +60,15 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private final Object getCredentialLock;
     private final Object startUpLock;
     private final Object securityQustionLock;
-
+    private final Object barangaIdLock;
+    private final Object UpdateFamilyLock;
 
     private String methodIdentifier;
+    int currentMonth = Utility.getCurrentMonth();
 
     // CLient Credential
     private int PORT = 0;
     private  String REMOTE_ID;
-
 
     // this list holds all the usernames who are online
     private OnlineClientArrayList onlineClientArrayList;
@@ -78,13 +77,13 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
     private String ipAddress;
 
+
     private int AccountID = 0;
     private String status;
     private String username;
     private String role;
     private String globalPassword;
     private static ArrayList searchList;
-
 
     public ClientDB() throws RemoteException{
 
@@ -101,6 +100,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         pendingAccountLock = new Object();
         requestAccountLock = new Object();
         securityQustionLock = new Object();
+        barangaIdLock = new Object();
+        UpdateFamilyLock = new Object();
 
         ApprovedLock = new Object();
         ApprovedAdminLock = new Object();
@@ -109,8 +110,10 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         getCredentialLock = new Object();
         startUpLock = new Object();
 
-        connectionPool = JdbcConnectionPool.create(host, user, pass);
-        connectionPool.setMaxConnections(40);
+        connectionPool = Database.getConnectionPool();
+        Database.setMaxConnection(40);
+
+
         onlineClientArrayList = new OnlineClientArrayList();
 
     }
@@ -134,7 +137,9 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private void StartUp(){
         String sql = "select * from generatedport where status = 'Online'";
 
+        Connection connection = null;
         synchronized (startUpLock){
+
 
                     try {
                         connection = connectionPool.getConnection();
@@ -169,6 +174,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
         public  boolean checkConnectDB() throws SQLException {
             boolean isconnected = false;
+            Connection connection = null;
 
                 synchronized (connectionLock){
 
@@ -181,11 +187,12 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                             }else{
                                 isconnected = false;
                             }
-                            connection.close();
 
                         } catch (SQLException e) {
                             isconnected = false;
                             e.printStackTrace();
+                        }finally {
+                            Utility.closeConnection(connection);
                         }
                 }
 
@@ -202,13 +209,12 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     }
 
 
-
     @Override
     public boolean updateStaffInfo(StaffInfo staffInfo, String oldUsername) throws RemoteException {
         boolean isUpdated = false;
         String sqlAccount = "Update account set user = ?, password = ? where id = ?";
         String sqlStaffInfo = "Update client set name=?,  address = ?, contact =?,  accountid =?";
-
+        Connection connection = null;
         synchronized (updateStaffLock){
                         try {
                             System.out.println("updatingg .... ");
@@ -243,7 +249,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                             Utility.closeConnection(connection);
                         }
              }
-
 
         return isUpdated;
     }
@@ -285,13 +290,9 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private ArrayList getSearchList(String name){
         ArrayList list  = new ArrayList();
 
-        //SELECT * from family where (Lower(name) like  Lower('Orville%'))
-
-
         String sqlfamily  = "SELECT * from family where (Lower(name) like ? or Lower (spouse) like ?)  ";
         String sqlgetbarangay = "Select name from barangay where id = ?";
         String sqlfamPoverty = "SELECT * from povertyfactors where familyid = ? ";
-
 
         try {
             Connection connection = connectionPool.getConnection();
@@ -317,8 +318,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 String gender = rs.getString("gender");
                 int yrResidency = rs.getInt("yrresidency");
                 LocalDate YrIssued = Utility.StringToLocalDate(rs.getString("yrissued"));
-
-                System.out.println(barangayid);
 
                 // get the barangay name
                 ps = connection.prepareStatement(sqlgetbarangay);
@@ -381,11 +380,11 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     // total numbers of pending accounts
     @Override
     public int getPendingAccounts() throws RemoteException {
+        Connection connection = null;
+
         int numberOfPending = 0;
         String sql = "Select count(id) from request rq where accountid in  " +
-                "(select accountid from account where RequestStatus = 'Pending')";
-
-
+                "(select id from account where RequestStatus = 'Pending')";
                 synchronized (pendingAccountLock){
 
                     try {
@@ -409,6 +408,9 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
     @Override
     public ArrayList getRequestAccounts() throws RemoteException {
+
+        Connection connection = null;
+
         ArrayList<RequestAccounts> requestList = new ArrayList();
             String sql = "SELECT  name, accountid  FROM request RE\n" +
                     "LEFT JOIN account A ON RE.accountid = A.id\n" +
@@ -439,6 +441,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     // Use for tableItemListener
     @Override
     public boolean Approve(RequestAccounts ra) {
+        Connection connection = null;
         boolean isApproved = false;
 
         String sql = "Update account SET requestStatus = 'Approved' WHERE id = ?";
@@ -470,6 +473,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
     @Override
     public boolean ApproveAdmin(RequestAccounts ra)  {
+        Connection connection = null;
         boolean isActivated = false;
 
         String sql = "Update account set requeststatus = 'Approved', Role = 'Admin' where id= ?";
@@ -511,6 +515,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
     @Override
     public boolean Reject(RequestAccounts ra) {
+        Connection connection = null;
         boolean isRejected = false;
         String sql = "Update account set requeststatus = 'Rejected' where id = ?";
 
@@ -541,12 +546,14 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         return isRejected;
     }
 
-
+    // transger personal informations after approveing account
     private boolean  TransferInformation(int accountID ){
+        Connection connection = null;
+
         String getClientInfo = "Select * from request where accountid = ?";
         String sqlTransfer = "Insert into client (Name, Address, contact, Gender, AccountID, SecretInfoID) VALUES (?,?,?,?,?,?)";
         try {
-            Connection connection = connectionPool.getConnection();
+            connection = connectionPool.getConnection();
             PreparedStatement ps = connection.prepareStatement(getClientInfo);
             ps.setInt(1, accountID);
 
@@ -580,26 +587,25 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
     }
 
-
     //METHODS THAT ARE NEED TO BE SYNCRONIZED
 
     @Override
     public StaffInfo Login( String user, String pass, String ip, int port, String Remote_ID) throws RemoteException {
-        System.out.println("Login method called port number:" + port);
-
+        Connection connection = null;
         REMOTE_ID = Remote_ID;
         PORT = port;
 
         username = user;
         StaffInfo staffInfo = new StaffInfo(false,0,null,null,null,null,null,null,null,0);
-
         synchronized (lock3){
             String loginSql = "SELECT id, User, password, status, role from account where User = ? and password = ?" +
                     "and RequestStatus = 'Approved'";
             String updateStatus = "UPDATE account SET status = ? WHERE User = ? and password = ?";
 
             try {
-              Connection  connection = connectionPool.getConnection();
+
+                 connection = connectionPool.getConnection();
+
                 PreparedStatement ps = connection.prepareStatement(loginSql);
                 ps.setString(1,user);
                 ps.setString(2, pass);
@@ -632,20 +638,19 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
                     // record did not match
                     }else{
-                        System.out.println("exlse1");
                     }
                 // record is not existing
                 }else {
-                    System.out.println("exlse");
 
                 }
-                System.out.println("Active Connections:" + connectionPool.getActiveConnections());
-                connection.close();
-                System.out.println("Active Connections:" + connectionPool.getActiveConnections());
+
             } catch (SQLException e) {
                 e.printStackTrace();
+            }finally {
+                System.out.println("Active Connections:" + connectionPool.getActiveConnections());
+                Utility.closeConnection(connection);
+                System.out.println("Active Connections:" + connectionPool.getActiveConnections());
             }
-
         }
 
     return staffInfo;
@@ -694,13 +699,13 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                                                                 while (x <= onlineClientArrayList.size() -1){
 
                                                                     OnlineClient client  = onlineClientArrayList.get(x);
-                                                                    System.out.println(client.getUsername()+ "=="+ username);
-                                                                    System.out.println(status);
+                                                                   // System.out.println(client.getUsername()+ "=="+ username);
+                                                                   //System.out.println(status);
 
 
                                                                             if (client.getUsername().equals(username) && status.equals("Online")){
 
-                                                                                // indicate that client is already online
+                                                                                // indicates that client is already online
                                                                                 System.out.println(client.getUsername() + " is already Online");
                                                                                 staffInfo.setAccountExist(true);
                                                                                 staffInfo.setStatus("Online");
@@ -732,9 +737,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
                                                                             }
 
-
                                                                 }
-
                                                     }
 
             } catch (SQLException e) {
@@ -744,10 +747,9 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         }
 
 
-
     @Override
     public boolean register(StaffRegister staffRegister) throws RemoteException {
-
+        Connection connection = null;
         synchronized (lock2){
 
             int accountID = 0;
@@ -763,7 +765,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 ps.setString(2,staffRegister.getPassword());
                 ps.setString(3,"Pending");
                 ps.setString(4,"Offline");
-
 
                 ps.executeUpdate();
 
@@ -834,7 +835,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     @Override
     public boolean getUsername(String username) throws RemoteException {
         boolean bool = false;
-
+        Connection connection = null;
         synchronized (usernameLock){
 
             String usernameSQL = "SELECT User FROM account WHERE User = ?";
@@ -864,6 +865,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
     @Override
     public void Logout(int accountID, String username) throws RemoteException {
+        Connection connection = null;
+
         String logout = "Update account set status = ? where id = ?";
 
         synchronized (logoutLock){
@@ -890,10 +893,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         }
 
     }
-    /*
-
-
-     */
     public String getMethodIdentifier() {
         return methodIdentifier;
     }
@@ -913,31 +912,22 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     public boolean addFamilyInfo(boolean instantSave, Family family) throws RemoteException {
 
         boolean bool = false;
-
+        Connection connection = null;
         synchronized (FamilyLock) {
 
                 try {
                     connection = connectionPool.getConnection();
 
-
                     if (instantSave){
                         bool =  addToBarangay(family, connection);
-                        System.out.println("InstantSave");
                     }else {
                         bool = addToFamilyWithCheck(family, connection);
-                        System.out.println("not instantSave");
-
                     }
-
 
                 } catch (SQLException e) {
                     e.printStackTrace();
                 }finally {
-                            try {
-                                connection.close();
-                            } catch (SQLException e) {
-                                e.printStackTrace();
-                            }
+                            Utility.closeConnection(connection);
                 }
 
         }
@@ -974,60 +964,38 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     }
 
 
-
-    // Date column represent YEAR!
     private boolean addToBarangay(Family family, Connection connection){
     boolean isValid = false;
 
-        String insertbarangay = "Insert INTO barangay (name,date,month,unresolvepopulation,resolvepopulation) VALUES " +
-                "(?,?,?,?,?)";
-        String chckBarangay = "Select id from barangay where name = ? and date = ? and month = ?";
         String updateBarangay = "Update barangay  SET Unresolvepopulation = Unresolvepopulation + 1 where id = ?";
-
-        int currentMonth = Utility.getCurrentMonth();
 
         int barangayID = 0;
 
             try {
+                Logger.Log("addToBarangay");
                 // check if barangay is already existing
+                String barangayName = family.getFamilyinfo().getBarangay();
+                LocalDate date =  family.getFamilyinfo().getSurveyedYr();
 
-                PreparedStatement chckPs = connection.prepareStatement(chckBarangay,Statement.RETURN_GENERATED_KEYS);
-                chckPs.setString(1,family.getFamilyinfo().getBarangay());
-                chckPs.setString(2, family.getFamilyinfo().getSurveyedYr().toString());
-                chckPs.setInt(3,currentMonth);
+                boolean existing = isBarangayExisting(barangayName, date.toString(), connection);
 
+                        if (existing){
+                            Logger.Log("barangay Existing line 979");
 
-                ResultSet chckRs = chckPs.executeQuery();
+                            barangayID = getBarangayID(barangayName, date.toString());
 
-                if (chckRs.next()){
-                    barangayID = chckRs.getInt(1);
+                            //update the barangay
+                            PreparedStatement updatePs = connection.prepareStatement(updateBarangay,Statement.RETURN_GENERATED_KEYS);
+                            updatePs.setInt(1,barangayID);
+                            updatePs.executeUpdate();
 
-                    //update the barangay
-                    PreparedStatement updatePs = connection.prepareStatement(updateBarangay,Statement.RETURN_GENERATED_KEYS);
-                    updatePs.setInt(1,barangayID);
-                    int row = updatePs.executeUpdate();
-
-                }else {
-                    // insert new  barangay record
-                    PreparedStatement barangayPS = connection.prepareStatement(insertbarangay, Statement.RETURN_GENERATED_KEYS);
-                    barangayPS.setString(1,family.getFamilyinfo().getBarangay());
-                    barangayPS.setString(2, family.getFamilyinfo().getSurveyedYr().toString());
-                    barangayPS.setInt(3,currentMonth);
-                    barangayPS.setInt(4,1);
-                    barangayPS.setInt(5,0);
-
-                    int row = barangayPS.executeUpdate();
-                    ResultSet barangayRs = barangayPS.getGeneratedKeys();
-
-                    if (row == 1 && barangayRs.next()) {
-                        barangayID = barangayRs.getInt(1);
-                    }
-
-                    System.out.println("BarangayID from insert barangay "+barangayID);
-                }
+                        }else {
+                            // insert new  barangay record
+                            Logger.Log("createNewBarangay ");
+                            barangayID = createNewBarangay(barangayName, date);
+                        }
 
                 isValid = addFamily(family,barangayID,connection);
-
 
             } catch (SQLException e) {
                 isValid = false;
@@ -1036,11 +1004,12 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     return isValid;
     }
 
-    private boolean addFamily(Family family, int barangayID, Connection connection){
+    private boolean  addFamily(Family family, int barangayID, Connection connection){
         boolean isSucess = false;
         int familyID = 0;
 
-        String addFamilySql = "Insert INTO family (barangayid,date,name,maritalstatus,age,spouse,address,childrenno,gender,yrresidency,yrissued,clientid)" +
+        String addFamilySql = "Insert INTO family (barangayid,date,name,maritalstatus,age,spouse," +
+                "address,childrenno,gender,yrresidency,yrissued,clientid)" +
                 "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
         try {
             int numofChildren = family.getFamilyinfo().getNumofChildren();
@@ -1072,7 +1041,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
             isSucess = false;
             e.printStackTrace();
         }
-
 
         return isSucess;
     }
@@ -1111,30 +1079,24 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     }
 
     /*
-    notify client that the faily he tried to input
+    notify client that the family he tried to input
     has existing account
      */
     private void notifyClient(Family family){
-        Registry reg = null;
 
         // get username
         String username = getUsername(family.getFamilyinfo().getClientID());
         OnlineClient client = onlineClientArrayList.getClientCredential(username);
 
-        TimedRMIclientSocketFactory  csf = new TimedRMIclientSocketFactory(6000);
                 try {
-                        reg = LocateRegistry.getRegistry(System.setProperty("java.rmi.server.hostname",
-                                    client.getIpaddress()), client.getPort(), csf);
-                        ClientInterface clientInterface = (ClientInterface) reg.lookup(client.getREMOTE_ID());
+                          ArrayList commonNameList = searchedList(family.getFamilyinfo().getName());
 
-                        ArrayList commonNameList = searchedList(family.getFamilyinfo().getName());
+                          ClientInterface clientInterface = ClientIntefaceFactory.getClientInterface(client);
 
                           System.out.println("family name from notif : " + family.getFamilyinfo().getName()) ;
                           clientInterface.notifyClient(commonNameList);
 
                 } catch (RemoteException e) {
-                    e.printStackTrace();
-                } catch (NotBoundException e) {
                     e.printStackTrace();
                 }
 
@@ -1163,17 +1125,18 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         return username;
     }
 
-
     @Override
     public Credentials getCredentials(String username, String ipAddress) throws RemoteException {
         Credentials credentials = null;
         String sql = "Select id from account where user = ?";
+        Connection connection = null;
 
                 synchronized (getCredentialLock){
                     this.ipAddress = ipAddress;
 
                     try {
-                            connection = connectionPool.getConnection();
+
+                        connection = connectionPool.getConnection();
 
                             PreparedStatement ps = connection.prepareStatement(sql);
                             ps.setString(1,username);
@@ -1182,25 +1145,130 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
                                     if (rs.next()){
                                         int accountID = rs.getInt("id");
-                                        credentials = generateCredentials(accountID,connection );
-                                        System.out.println("Username found from getCredentials");
+                                        credentials = generateCredentials(accountID, connection );
 
-                                    }else {
-                                        System.out.println("no Username found from database");
                                     }
 
-                        } catch (SQLException e) {
+                    } catch (SQLException e) {
                             e.printStackTrace();
-                        }finally {
-                            Utility.closeConnection(connection);
-                        }
+                    }finally {
+                        Utility.closeConnection(connection);
+                    }
                 }
 
         return credentials;
     }
 
+    //generate credenttial for client users, compose of remoteID and remoteport
+    private Credentials generateCredentials(int accountID, Connection connection ){
+        Credentials credentials = null;
+        int remotePort = 0;
+        String remoteID = "";
+
+        String sql = "Select remoteport, remoteid from generatedport where accountid=?";
+        String saveCredentials = "Insert into generatedport (accountid, remoteport, remoteid, ipaddress) values (?,?,?, ?)";
+
+        try {
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setInt(1,accountID);
+
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()){
+                remotePort = rs.getInt("remoteport");
+                remoteID = rs.getString("remoteid");
+
+                updateClientIpAddress(ipAddress, accountID, connection);
+            }else {
+                remotePort = generatePort();
+                remoteID = generateRemoteID();
+
+                ps = connection.prepareStatement(saveCredentials);
+                ps.setInt(1,accountID);
+                ps.setInt(2, remotePort);
+                ps.setString(3, remoteID);
+                ps.setString(4, ipAddress);
+
+                ps.executeUpdate();
+
+            }
+            credentials = new Credentials(remoteID, remotePort);
+
+            setCredentialStatus("Online", accountID, connection);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return credentials;
+    }
+
+    private void updateClientIpAddress(String ipaddress, int accountID, Connection connection){
+
+        String sql = "Update generatedport set ipaddress = ?where accountid = ?";
+
+        try {
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, ipaddress);
+            ps.setInt(2, accountID);
+
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void setCredentialStatus(String status, int Accountid, Connection connection){
+        String sql = "Update generatedport set status = ? where accountid = ? ";
+
+        try {
+            PreparedStatement ps = connection.prepareStatement(sql);
+
+            ps.setString(1, status);
+            ps.setInt(2, Accountid);
+
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            Utility.closeConnection(connection);
+        }
+
+    }
+    private int generatePort(){
+        int port = 0;
+
+        Random ran = new Random();
+
+        for (int i = 0; i < 10; i++) {
+            port= (10000 + ran.nextInt(50000));
+        }
+
+        return port;
+    }
+
+    private String generateRemoteID(){
+        int ID = 0;
+
+        Random ran = new Random();
+
+        for (int i = 0; i < 10; i++) {
+            ID= (1000 + ran.nextInt(3560));
+        }
+
+        String Remoteid = String.valueOf(ID);
+
+        return Remoteid;
+    }
+
+
     @Override
     public SecretDetails getSecurityQuestion(String hint1) throws RemoteException {
+        Connection connection = null;
+
         String password = "";
         int secretID = 0;
         SecretDetails secretDetails = null;
@@ -1251,138 +1319,329 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         return secretDetails;
     }
 
+    @Override
+    public boolean UpdateFamilyInformation(Family family) throws RemoteException {
+        boolean isEdited = false;
+        Connection connection = null;
+        synchronized (UpdateFamilyLock){
+                try {
+                    int oldBarangayID = 0;
+                    int newBarangayID = 0;
+                    String barangayName = family.getFamilyinfo().getBarangay();
+                    LocalDate date = family.getFamilyinfo().getSurveyedYr();
 
+                    connection = connectionPool.getConnection();
 
-    /**
-     *
-     * generate credential if there are no available in database
-     *
-     * @param accountID account id
-     * @param connection sql connection
-     * @return Credential
-     */
-    private Credentials generateCredentials(int accountID, Connection connection){
-        Credentials credentials = null;
-        int remotePort = 0;
-        String remoteID = "";
+                    boolean exist = isBarangayExisting(barangayName, date.toString(), connection);
 
-        String sql = "Select remoteport, remoteid from generatedport where accountid=?";
-        String saveCredentials = "Insert into generatedport (accountid, remoteport, remoteid, ipaddress) values (?,?,?, ?)";
+                            if (exist){
+                                newBarangayID = getBarangayID(barangayName , date.toString() );
+                            }else {
+                                newBarangayID = createNewBarangay(barangayName, date);
+                            }
+
+                    oldBarangayID = getBarangayID(family.getFamilyinfo().familyId());
+
+                            updateFamily(family.getFamilyinfo(), newBarangayID, connection);
+                            updateFamilyPoverty(family.getFamilypoverty(), family.getFamilyinfo().familyId(), connection);
+
+                    if (oldBarangayID != newBarangayID){
+                        updateBarangay(oldBarangayID, newBarangayID, date ,connection);
+                    }
+
+                    isEdited = true;
+
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }finally {
+                    Utility.closeConnection(connection);
+                }
+        }
+
+        return isEdited;
+    }
+
+    @Override
+    public void getClientEntries(int ClientID) throws RemoteException {
+        String username = getUsername(ClientID);
+        OnlineClient client = onlineClientArrayList.getClientCredential(username);
+        ClientEntries clientEntries = null;
+
+        int size = getClientEntryMaxSize(ClientID);
+
+        ClientInterface clientInterface = ClientIntefaceFactory.getClientInterface(client);
+        clientInterface.setClientEntriesMaxSize(size);
+
+        String sql = "Select id, name, date from family where clientid = ?";
 
         try {
+            Connection connection = connectionPool.getConnection();
+
             PreparedStatement ps = connection.prepareStatement(sql);
-            ps.setInt(1,accountID);
+            ps.setInt(1, ClientID);
 
             ResultSet rs = ps.executeQuery();
 
-                    if (rs.next()){
-                         remotePort = rs.getInt("remoteport");
-                         remoteID = rs.getString("remoteid");
-                         setCredentialStatus("Online", accountID, connection);
-                         updateClientIpAddress(ipAddress, accountID, connection );
-                         credentials = new Credentials(remoteID, remotePort);
-                    }else {
+            while (rs.next()){
+                int     id = rs.getInt("id");
+                String  name = rs.getString("name");
+                String  date =  rs.getString("date");
 
-                        remotePort = generatePort();
-                        remoteID = generateRemoteID();
-
-                        ps = connection.prepareStatement(saveCredentials);
-                        ps.setInt(1,accountID);
-                        ps.setInt(2, remotePort);
-                        ps.setString(3, remoteID);
-                        ps.setString(4, ipAddress);
-
-                        ps.executeUpdate();
-                        setCredentialStatus("Online", accountID, connection);
-                        credentials = new Credentials(remoteID, remotePort);
-                    }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return credentials;
-    }
-
-    private void updateClientIpAddress(String ipaddress, int accountID, Connection connection){
-
-        String sql = "Update generatedport set ipaddress = ?where accountid = ?";
-
-        try {
-
-            PreparedStatement ps = connection.prepareStatement(sql);
-            ps.setString(1, ipaddress);
-            ps.setInt(2, accountID);
-
-            ps.executeUpdate();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void setCredentialStatus(String status, int Accountid, Connection connection){
-        String sql = "Update generatedport set status = ? where accountid = ? ";
-
-        try {
-            PreparedStatement ps = connection.prepareStatement(sql);
-
-            ps.setString(1, status);
-            ps.setInt(2, Accountid);
-
-            ps.executeUpdate();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-    }
-    private int generatePort(){
-        int port = 0;
-
-        Random ran = new Random();
-
-        for (int i = 0; i < 10; i++) {
-            port= (10000 + ran.nextInt(50000));
-        }
-
-        return port;
-    }
-
-    private String generateRemoteID(){
-        int ID = 0;
-
-        Random ran = new Random();
-
-        for (int i = 0; i < 10; i++) {
-            ID= (1000 + ran.nextInt(3560));
-        }
-
-        String Remoteid = String.valueOf(ID);
-
-        return Remoteid;
-    }
-
-
-    // getActiveConnection method is just used for development purpose
-    public void getActiveConnection(){
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (true){
-                        try {
-                            Thread.sleep(5002);
-                            System.out.println("Active connectionss : "+connectionPool.getActiveConnections());
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
+                 clientEntries =  new ClientEntries(id, name, date);
+                 clientInterface.addClientEntry(clientEntries);
                 }
-            }
-        });
 
-        thread.start();
+            Utility.closeConnection(connection);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
 
     }
+
+    private int getClientEntryMaxSize(int ClientID){
+        int size = 0;
+        String sql = "Select Count(id) from family where clientid = ?";
+
+        try {
+            Connection connection = connectionPool.getConnection();
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setInt(1, ClientID);
+
+            ResultSet rs  = ps.executeQuery();
+
+            rs.next();
+            size = rs.getInt(1);
+
+            Utility.closeConnection(connection);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return  size;
+    }
+
+    private void updateFamily(FamilyInfo familyInfo, int barangayiD, Connection connection){
+
+        String sql = "Update family SET " +
+                "barangayid = ?," +
+                "date = ?," +
+                "name = ?," +
+                "maritalstatus = ?," +
+                "age = ?," +
+                "spouse = ?," +
+                "address = ?," +
+                "childrenno = ?," +
+                "gender = ?," +
+                "yrresidency = ?," +
+                "yrissued = ?," +
+                "clientid = ?" +
+                "where  id = ?";
+
+        try {
+            int numofChildren = familyInfo.getNumofChildren();
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+
+            ps.setInt(1,    barangayiD);
+            ps.setString(2, familyInfo.getInputDate());
+            ps.setString(3, familyInfo.getName());
+            ps.setString(4, familyInfo.getMaritalStatus());
+            ps.setString(5, familyInfo.getAge());
+            ps.setString(6, familyInfo.getSpouseName());
+            ps.setString(7, familyInfo.getAddress());
+            ps.setInt(8,    numofChildren);
+            ps.setString(9, familyInfo.getGender());
+            ps.setInt(10,   familyInfo.getResidencyYr());
+            ps.setString(11,familyInfo.getSurveyedYr().toString());
+            ps.setInt(12, familyInfo.getClientID());
+            ps.setInt(13,   familyInfo.familyId());
+
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private void updateFamilyPoverty(FamilyPoverty familyPoverty, int familyID, Connection connection){
+
+        String povertySql = "Update povertyfactors SET " +
+                "year = ?," +
+                "month = ?," +
+                "occupancy = ?," +
+                "schoolchildren = ?," +
+                "underemployed = ?," +
+                "otherincome = ?," +
+                "threshold = ?," +
+                "ownership = ?" +
+                "WHERE familyid = ?";
+
+        try {
+            PreparedStatement  ps = connection.prepareStatement(povertySql);
+
+            ps.setString(1, familyPoverty.getYear().toString());
+            ps.setInt   (2,    familyPoverty.getMonth());
+            ps.setString(3, familyPoverty.getOccupancy());
+            ps.setString(4, familyPoverty.getChildreninSchool());
+            ps.setString(5, familyPoverty.getIsunderEmployed());
+            ps.setString(6, familyPoverty.getHasotherIncome());
+            ps.setString(7, familyPoverty.getIsbelow8k());
+            ps.setString(8, familyPoverty.getOwnership());
+            ps.setInt   (9,    familyID);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private void updateBarangay(int oldBarangayID, int newBarangayID, LocalDate date, Connection connection){
+
+        String sql = "Update barangay  set unresolvepopulation   = Unresolvepopulation -1 where id = ?";
+        String sql2 = "Update barangay set unresolvepopulation   = Unresolvepopulation +1, date = ?, month = ? where id = ?";
+
+        try {
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setInt(1, oldBarangayID);
+            ps.executeUpdate();
+
+            ps.clearParameters();
+
+            ps = connection.prepareStatement(sql2);
+            ps.setString(1, date.toString());
+            ps.setInt(2, Utility.convertStringMonth(date.getMonth().toString()));
+            ps.setInt(3, newBarangayID);
+
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+
+
+
+    private int getBarangayID(int familyID){
+        Connection connection = null;
+        int barangayID = 0;
+        String sql = "Select barangayid from family where id = ?";
+
+        synchronized (barangaIdLock){
+                try {
+                    connection = connectionPool.getConnection();
+
+                    PreparedStatement ps = connection.prepareStatement(sql);
+                    ps.setInt(1, familyID);
+
+                    ResultSet rs = ps.executeQuery();
+
+                    rs.next();
+
+                    barangayID = rs.getInt("barangayid");
+
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }finally {
+                    Utility.closeConnection(connection);
+                }
+        }
+
+        return barangayID;
+    }
+    private int getBarangayID(String barangayName, String date){
+        Connection connection = null;
+        int barangayID = 0;
+        String sql = "Select id from barangay where name = ? and date like ?";
+
+        synchronized (barangaIdLock){
+            try {
+                date = Utility.subStringDate(date);
+
+                        connection = connectionPool.getConnection();
+
+                PreparedStatement ps = connection.prepareStatement(sql);
+                ps.setString(1, barangayName);
+                ps.setString(2, date + "%");
+
+                ResultSet rs = ps.executeQuery();
+
+                rs.next();
+
+                barangayID = rs.getInt("id");
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }finally {
+                Utility.closeConnection(connection);
+            }
+        }
+
+        return barangayID;
+    }
+
+    private boolean isBarangayExisting(String barangayName, String date, Connection connection){
+        boolean exist = false;
+
+        String chckBarangay = "Select id from barangay where name = ? and date like  ?";
+
+        try {
+            date = Utility.subStringDate(date);
+
+            PreparedStatement chckPs = connection.prepareStatement(chckBarangay,Statement.RETURN_GENERATED_KEYS);
+            chckPs.setString(1, barangayName);
+            chckPs.setString(2, date + "%");
+
+            ResultSet rs = chckPs.executeQuery();
+
+            if (rs.next()){
+                exist = true;
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return exist;
+    }
+
+    private int createNewBarangay(String barangayName, LocalDate date){
+        int barangayID = 0;
+        Connection connection = null;
+
+        String insertbarangay = "Insert INTO barangay (name,date,month,unresolvepopulation,resolvepopulation) VALUES " +
+                "(?,?,?,?,?)";
+
+        try {
+            connection = connectionPool.getConnection();
+
+            PreparedStatement barangayPS = connection.prepareStatement(insertbarangay, Statement.RETURN_GENERATED_KEYS);
+            barangayPS.setString(1, barangayName );
+            barangayPS.setString(2, date.toString());
+            barangayPS.setInt(3, Utility.convertStringMonth(date.getMonth().toString()));
+            barangayPS.setInt(4,1);
+            barangayPS.setInt(5,0);
+
+            int row = barangayPS.executeUpdate();
+            ResultSet barangayRs = barangayPS.getGeneratedKeys();
+
+            if (row == 1 && barangayRs.next()) {
+                barangayID = barangayRs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            Utility.closeConnection(connection);
+        }
+
+        return barangayID;
+    }
+
 
 }
 

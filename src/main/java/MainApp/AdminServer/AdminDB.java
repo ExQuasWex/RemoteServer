@@ -1,15 +1,16 @@
 package MainApp.AdminServer;
 
+import AdminModel.Params;
 import AdminModel.Report.Children.Model.ResponseCompareOverview;
 import AdminModel.Report.Children.Model.ResponsePovertyFactor;
 import AdminModel.Report.Children.Model.ResponsePovertyRate;
-import AdminModel.Params;
+import AdminModel.Report.Children.Model.ResponseSpecificOverView;
 import AdminModel.Report.Parent.Model.ResponseOverviewReport;
+import AdminModel.ResponseModel.ActiveAccounts;
 import AdminModel.ResponseModel.BarangayFamily;
+import MainApp.DataBase.Database;
 import RMI.AdminInterface;
 import RMI.Constant;
-import Remote.Method.FamilyModel.FamilyPoverty;
-import com.sun.deploy.nativesandbox.comm.Response;
 import org.h2.jdbcx.JdbcConnectionPool;
 import utility.Utility;
 
@@ -22,8 +23,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.util.ArrayList;
+
 
 /**
  * Created by Didoy on 11/26/2015.
@@ -33,53 +34,36 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
     private Object lock1;
 
     private Connection connection;
-    private final String host = "jdbc:h2:file:c:/pdsss/database/pdss;Mode=MySQL;LOCK_MODE=1";
-    private final String user = "admin";
-    private final String pass = "admin";
+
     private static JdbcConnectionPool connectionPool;
 
     private Object connectionLock;
     private Object overviewLock;
+    private Object activeAccount;
 
+//Specific overview
+    private String povertySingleBarangay;
 
-    private String overViewSQL;
+    private BarangayData barangayData = new BarangayData();
+    private PovertyFactorsData povertyFactorsData = new PovertyFactorsData();
+
     public AdminDB() throws RemoteException {
 
         connectionLock = new Object();
         lock1 = new Object();
         overviewLock = new Object();
+        activeAccount = new Object();
 
+        connectionPool = Database.getConnectionPool();
+        Database.setMaxConnection(40);
 
-                connectionPool = JdbcConnectionPool.create(host, user, pass);
+//-------- Specific overview  // --- ///
 
-
-        overViewSQL= "SELECT\n" +
-                "  sum(CASE\n" +
-                "      WHEN occupancy ='Unemployed' THEN 1\n" +
-                "      ELSE 0\n" +
-                "      END) as unemployed,\n" +
-                "\n" +
-                "  sum( CASE\n" +
-                "       WHEN underemployed = 'Yes' THEN 1\n" +
-                "       ELSE 0\n" +
-                "       END)as Underemployed,\n" +
-                "  sum( CASE\n" +
-                "       WHEN otherincome = 'No' THEN +1\n" +
-                "       ELSE 0\n" +
-                "       END)as NoExtra,\n" +
-                "  sum( CASE\n" +
-                "       WHEN threshold = 'No' THEN +1\n" +
-                "       ELSE 0\n" +
-                "       END)as BelowMinimum,\n" +
-                "  sum( CASE\n" +
-                "       WHEN (ownership = 'Rental' or ownership = 'Shared' or ownership = 'Informal settler') THEN +1\n" +
-                "       ELSE 0\n" +
-                "       END)as NOshELTER\n" +
-                "\n" +
-                "\n" +
-                "from povertyfactors where year like '2016%'";
-
+       povertySingleBarangay =  "SELECT name, date, sum(unresolvepopulation) as unresolvepopulation\n" +
+                "FROM barangay" +
+                "WHERE name = ? and date LIKE ? GROUP BY date";
     }
+
 
     public void StartAdminServer(){
 
@@ -111,11 +95,12 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                 }else{
                     isconnected = false;
                 }
-                connection.close();
 
             } catch (SQLException e) {
                 isconnected = false;
                 e.printStackTrace();
+            }finally {
+                Utility.closeConnection(connection);
             }
         }
 
@@ -124,60 +109,19 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
     @Override
     public ResponseOverviewReport getOverViewData(Params params, String type) throws RemoteException {
-        ArrayList povertyList = new ArrayList();
+
+        ArrayList povertyPopulation = new ArrayList();
         ArrayList factorList = new ArrayList();
         ResponseOverviewReport responseOverviewReport = null ;
 
-        String year = Utility.getCurrentYear();
-        String povertyFactorSQL = overViewSQL;
-        String povertyRateSQL = "SELECT name,  sum(unresolvepopulation) as unresolvepopulation\n" +
-                "FROM barangay\n" +
-                "WHERE date LIKE ? GROUP BY name \n";
-
             synchronized (overviewLock){
+                        String currentYear = Utility.getCurrentYear();
 
-                    try {
-                        connection = connectionPool.getConnection();
-                        PreparedStatement povertyFactorPS = connection.prepareStatement(povertyFactorSQL);
-                        PreparedStatement povertyRatePS = connection.prepareStatement(povertyRateSQL);
-                        povertyRatePS.setString(1,year + "%");
+                povertyPopulation = barangayData.getOverViewPopulation(currentYear);
+                factorList = povertyFactorsData.getOverViewFactors(currentYear);
 
-                        ResultSet factorRS = povertyFactorPS.executeQuery();
+                        responseOverviewReport = new ResponseOverviewReport(factorList, povertyPopulation);
 
-                            while (factorRS.next()){
-
-                                int unemployed = factorRS.getInt("Unemployed");
-                                int underEmployed = factorRS.getInt("UnderEmployed");
-                                int noextra = factorRS.getInt("NoExtra");
-                                int BelowMinimum = factorRS.getInt("BelowMinimum");
-                                int NoShelter = factorRS.getInt("NoShelter");
-
-
-                            ResponsePovertyFactor povertyRate  =
-                                    new ResponsePovertyFactor(unemployed, underEmployed, noextra, BelowMinimum, NoShelter );
-
-                                factorList.add(povertyRate);
-                            }
-
-                        ResultSet povertyRS = povertyRatePS.executeQuery();
-
-                        while (povertyRS.next()){
-                                String brngayName = povertyRS.getString("name");
-                                int unresolvePopulation = povertyRS.getInt("unresolvepopulation");
-
-                                ResponsePovertyRate bd = new ResponsePovertyRate(brngayName, unresolvePopulation);
-
-                                povertyList.add(bd);
-
-                            }
-
-                        responseOverviewReport = new ResponseOverviewReport(factorList, povertyList);
-
-                    } catch (SQLException e) {
-                        e.printStackTrace();
-                    }finally {
-                        Utility.closeConnection(connection);
-                    }
             }
 
         return responseOverviewReport;
@@ -185,46 +129,57 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
     @Override
     public ResponseCompareOverview getCompareOverViewData(Params params, String type) throws RemoteException {
+
         ResponseCompareOverview compareOverview = null;
-        String sql = "SELECT  sum(unresolvepopulation) as unresolvepopulation\n" +
-                "FROM barangay WHERE date LIKE ? ";
+        int totalPovertyYearOne = 0;
+        int totalPovertyYearTwo = 0;
+        ArrayList factorList1 = new ArrayList();
+        ArrayList factorList2 = new ArrayList();
 
-        try {
-            connection = connectionPool.getConnection();
-            PreparedStatement ps = connection.prepareStatement(sql);
-            ps.setString(1, String.valueOf(params.getYear()) + "%");
+             totalPovertyYearOne = barangayData.getPovertyCompareOverVieData(params.getYear());
+             totalPovertyYearTwo = barangayData.getPovertyCompareOverVieData(params.getMaxYear());
 
-            ResultSet rs = ps.executeQuery();
-            rs.next();
-            int povertyRateYearOne = rs.getInt("unresolvepopulation");
+             factorList1 = povertyFactorsData.getOverViewFactors(String.valueOf(params.getYear()));
+             factorList2 = povertyFactorsData.getOverViewFactors(String.valueOf(params.getYear()));
 
-            // getting total poverty rate year 2
-            ps.setString(1, String.valueOf(params.getMaxYear())+ "%");
-            rs = ps.executeQuery();
-            rs.next();
-            int povertyRateYearTwo = rs.getInt("unresolvepopulation");
-
-          compareOverview =  new ResponseCompareOverview(povertyRateYearOne, povertyRateYearTwo);
-
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }finally {
-            Utility.closeConnection(connection);
-        }
-
+        compareOverview =  new ResponseCompareOverview(totalPovertyYearOne, totalPovertyYearTwo, factorList1, factorList2 );
 
         return compareOverview;
     }
 
     @Override
-    public ArrayList getCompareSpecificData(Params params, String type) throws RemoteException {
-        return null;
+    public ResponseCompareOverview getCompareSpecificData(Params params, String type) throws RemoteException {
+
+        ResponseCompareOverview compareOverview = null;
+        int totalPovertyBarangayOne = 0;
+        int totalPovertyBarangayTwo = 0;
+        ArrayList factorList1 = null;
+        ArrayList factorList2 = null;
+
+        String yr1 = String.valueOf(params.getYear());
+        String yr2 = String.valueOf(params.getMaxYear());
+
+        totalPovertyBarangayOne = barangayData.getPovertyCompareSpecificData(yr1, params.getBarangay1());
+        totalPovertyBarangayTwo = barangayData.getPovertyCompareSpecificData(yr2, params.getBarangay2());
+
+        factorList1 = povertyFactorsData.getCompareSpecificFactors(yr1, params.getBarangay1());
+        factorList2 = povertyFactorsData.getCompareSpecificFactors(yr2, params.getBarangay2());
+
+        compareOverview =  new ResponseCompareOverview(totalPovertyBarangayOne, totalPovertyBarangayTwo, factorList1, factorList2 );
+
+        return compareOverview;
     }
 
     @Override
-    public ArrayList getSpecificOverViewData(Params params, String type) throws RemoteException {
-        return null;
+    public ResponseSpecificOverView getSpecificOverViewData(Params params, String type) throws RemoteException {
+        String yr = String.valueOf(params.getYear());
+
+        ArrayList monthlyPopulationList = barangayData.getPovertySpecificOverviewData(params);
+        ArrayList factorList = povertyFactorsData.getSpecificOverViewData(yr, params.getBarangay1());
+
+        ResponseSpecificOverView responseSpecificOverView = new ResponseSpecificOverView(monthlyPopulationList, factorList);
+
+        return responseSpecificOverView;
     }
 
     @Override
@@ -235,7 +190,7 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
     @Override
     public ArrayList getYears() throws RemoteException {
         ArrayList yearList = new ArrayList();
-        String sql = "Select date from barangay ";
+        String sql = "Select date from barangay";
 
         // add Sycnhronization
         try {
@@ -288,10 +243,10 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
                         }
 
-                        connection.close();
-
                     } catch (SQLException e) {
                         e.printStackTrace();
+                    }finally {
+                        Utility.closeConnection(connection);
                     }
 
                 }
@@ -300,14 +255,9 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
     }
 
 
-    private LocalDate StringToLocalDate(String date){
-        LocalDate localDate = LocalDate.parse(date);
-
-        return localDate;
-    }
-
     @Override
-    public ArrayList getFamilyBarangay(Params params) throws RemoteException {
+    public  ArrayList getFamilyBarangay(Params params) throws RemoteException {
+
         ArrayList<BarangayFamily> list = new ArrayList();
         String sql = "Select id, name, spouse, date from family where barangayid in \n" +
                 "(Select id from barangay where name = ?  and date Like ? and month = ?)";
@@ -332,16 +282,51 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
             }
 
-
         } catch (SQLException e) {
             e.printStackTrace();
-        }finally {
+        } finally {
             Utility.closeConnection(connection);
         }
 
-        return list;
+        return  list;
+
     }
 
+    @Override
+    public ArrayList getActiveAccounts( ) throws RemoteException {
+        ArrayList list = new ArrayList();
+        String sql = "\n" +
+                "SELECT A.id, user, C.name FROM account A \n" +
+                "LEFT JOIN client C ON C.accountid = A.id\n" +
+                "WHERE A.requeststatus = 'Approved' and A.role = 'Client'";
+
+            synchronized (activeAccount){
+
+                try {
+                    connection = connectionPool.getConnection();
+                    PreparedStatement ps = connection.prepareStatement(sql);
+
+                    ResultSet rs = ps.executeQuery();
+
+                            while (rs.next()){
+                                int id = rs.getInt("id");
+                                String name = rs.getString("Name");
+                                String username = rs.getString("user");
+
+                                list.add(new ActiveAccounts(id,username, name));
+
+                            }
+
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }finally {
+                    Utility.closeConnection(connection);
+                }
+
+            }
+
+        return list;
+    }
 
 
 }

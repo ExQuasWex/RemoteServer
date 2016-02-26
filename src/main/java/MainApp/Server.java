@@ -2,30 +2,20 @@ package MainApp;
 
 import MainApp.AdminServer.AdminDB;
 import MainApp.ClientSide.ClientDB;
-import RMI.Constant;
-import com.sun.imageio.plugins.common.ImageUtil;
+import MainApp.DataBase.Database;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import utility.Utility;
 
-import javax.imageio.ImageIO;
-import javax.swing.*;
 import java.awt.*;
 import java.awt.MenuItem;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.net.URL;
-import java.rmi.AlreadyBoundException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
 
 /**
  * Created by Didoy on 8/24/2015.
@@ -39,21 +29,25 @@ public class Server extends Application {
 
     }
 
+    @Override
+    public void start(Stage primaryStage) throws Exception {
+        StartServer();
+        addServerToTrayIcon();
+    }
+
     public static void StartServer(){
         try {
 
-
             ClientDB clientDB = new ClientDB();
             clientDB.StartClientServer();
-            clientDB.getActiveConnection();
 
             // creating server for admin
             AdminDB adminserver = new AdminDB();
             adminserver.StartAdminServer();
 
-            System.out.println("Server is now Running..");
+            Database.monitorActiveConnection();
 
-           //clientDB.Login("villerdexz","123321","");
+            System.out.println("Server is now Running..");
 
 
         }catch (RemoteException e){
@@ -64,14 +58,6 @@ public class Server extends Application {
         }
 
     }
-
-
-    @Override
-    public void start(Stage primaryStage) throws Exception {
-        StartServer();
-        addServerToTrayIcon();
-    }
-
 
     private void addServerToTrayIcon(){
         String trayNotSupported = "No system tray support, application exiting.";
@@ -95,7 +81,21 @@ public class Server extends Application {
         // add some pop up menu
         final java.awt.PopupMenu popup = new java.awt.PopupMenu();
         MenuItem exitItem = new MenuItem("Exit Server");
+        MenuItem showIp = new MenuItem("Show IP address");
         popup.add(exitItem);
+        popup.add(showIp);
+
+        MenuItem ip = null;
+        InetAddress rawIp  = null;
+
+        try {
+            rawIp = InetAddress.getLocalHost();
+            String strIp = rawIp.toString();
+            showIp.setName(strIp);
+
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
 
         trayIcon.setPopupMenu(popup);
 
@@ -116,6 +116,13 @@ public class Server extends Application {
             }
         });
 
+        showIp.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+            }
+        });
+
 
 
         // add trayAIcon to tray
@@ -128,7 +135,6 @@ public class Server extends Application {
 
 
     }
-
 
 
     private static void RemoteMessageException(){
