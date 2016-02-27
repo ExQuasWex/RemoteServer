@@ -123,7 +123,6 @@ public class Server extends Application {
         });
 
 
-
         // add trayAIcon to tray
         try {
             tray.add(trayIcon);
@@ -134,7 +133,6 @@ public class Server extends Application {
 
 
     }
-
 
     private static void RemoteMessageException(){
         Alert alert = new Alert(Alert.AlertType.INFORMATION);

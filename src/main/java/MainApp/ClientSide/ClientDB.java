@@ -214,7 +214,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         Connection connection = null;
         synchronized (updateStaffLock){
                         try {
-                            System.out.println("updatingg .... ");
                             connection = connectionPool.getConnection();
                             PreparedStatement ps = connection.prepareStatement(sqlAccount);
 
