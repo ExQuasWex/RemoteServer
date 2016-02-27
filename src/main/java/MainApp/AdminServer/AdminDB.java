@@ -1,10 +1,11 @@
 package MainApp.AdminServer;
 
 import AdminModel.Params;
-import AdminModel.Report.Children.Model.ResponseCompareOverview;
 import AdminModel.Report.Children.Model.ResponsePovertyFactor;
 import AdminModel.Report.Children.Model.ResponsePovertyRate;
-import AdminModel.Report.Children.Model.ResponseSpecificOverView;
+import AdminModel.Report.Parent.Children.Model.ResponseCompareOverview;
+import AdminModel.Report.Parent.Model.ResponseSpecific;
+import AdminModel.Report.Parent.Model.ResponseSpecificOverView;
 import AdminModel.Report.Parent.Model.ResponseOverviewReport;
 import AdminModel.ResponseModel.ActiveAccounts;
 import AdminModel.ResponseModel.BarangayFamily;
@@ -174,8 +175,21 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
     }
 
     @Override
-    public ArrayList getSpecific(Params params, String type) throws RemoteException {
-        return null;
+    public ResponseSpecific getSpecific(Params params, String type) throws RemoteException {
+
+        String yr = String.valueOf(params.getYear());
+        String month = params.getStrmonth();
+
+        final  String date = yr+ "-" +month;
+
+        String barangayName = params.getBarangay1();
+
+        int population = barangayData.getPovertyCompareSpecificData(date,barangayName );
+         ResponsePovertyFactor povertyFactor = povertyFactorsData.getSpecificFactors(date, barangayName);
+
+        ResponseSpecific responseSpecific = new ResponseSpecific(population, povertyFactor);
+
+        return responseSpecific;
     }
 
     @Override

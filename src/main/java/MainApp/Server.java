@@ -1,6 +1,7 @@
 package MainApp;
 
 import MainApp.AdminServer.AdminDB;
+
 import MainApp.ClientSide.ClientDB;
 import MainApp.DataBase.Database;
 import javafx.application.Application;
@@ -49,7 +50,6 @@ public class Server extends Application {
 
             System.out.println("Server is now Running..");
 
-
         }catch (RemoteException e){
             e.printStackTrace();
             RemoteMessageException();
@@ -76,7 +76,6 @@ public class Server extends Application {
         img = img.getScaledInstance(traySize.width, traySize.height, Image.SCALE_SMOOTH);
 
         TrayIcon trayIcon = new TrayIcon(img);
-
 
         // add some pop up menu
         final java.awt.PopupMenu popup = new java.awt.PopupMenu();

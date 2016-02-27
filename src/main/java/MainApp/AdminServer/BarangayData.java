@@ -2,11 +2,9 @@ package MainApp.AdminServer;
 
 import AdminModel.Params;
 import AdminModel.Report.Children.Model.ResponseMonthlyPovertyRate;
-import AdminModel.Report.Children.Model.ResponsePovertyFactor;
 import AdminModel.Report.Children.Model.ResponsePovertyRate;
 import MainApp.DataBase.Database;
 import org.h2.jdbcx.JdbcConnectionPool;
-import utility.Logger;
 import utility.Utility;
 
 import java.sql.Connection;
@@ -155,7 +153,8 @@ public class BarangayData {
                 String date = rs.getString("date");
                 int population = rs.getInt("unresolvepopulation");
 
-                String month = Utility.convertIntMonth(date);
+                date = Utility.parseDate(date);
+                String month = Utility.rebirtDigitalMonth(date);
 
                 ResponseMonthlyPovertyRate monthlyPovertyRate = new ResponseMonthlyPovertyRate(month, population);
 

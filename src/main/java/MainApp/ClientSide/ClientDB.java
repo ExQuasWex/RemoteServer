@@ -1,6 +1,5 @@
 package MainApp.ClientSide;
 
-import AdminModel.Params;
 import AdminModel.RequestAccounts;
 import MainApp.ClientIntefaceFactory;
 import MainApp.DataBase.Database;
@@ -19,7 +18,6 @@ import global.OnlineClient;
 import global.SecretDetails;
 import org.h2.jdbcx.JdbcConnectionPool;
 import utility.Logger;
-import utility.TimedRMIclientSocketFactory;
 import utility.Utility;
 
 import java.rmi.AlreadyBoundException;
@@ -36,7 +34,6 @@ import java.util.*;
  * Created by Didoy on 8/24/2015.
  *
  */
-
 
 public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
