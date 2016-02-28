@@ -10,6 +10,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.util.ArrayList;
 
 /**
  * Created by reiner on 2/27/2016.
@@ -59,6 +60,34 @@ public class FamilyDB {
         }
 
         return familyInfo;
+    }
+
+    public static  ArrayList<Integer> getFamilyIdList(String year, String barangayName){
+        Connection connection = null;
+        ArrayList idList = new ArrayList();
+
+        String sql = "  SELECT F.id\n" +
+                "  FROM family F LEFT JOIN barangay B ON B.id = F.barangayid\n" +
+                "  WHERE B.date LIKE ? and B.name = ? GROUP BY F.id  ";
+
+        try {
+            connection = connectionPool.getConnection();
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, year + "%");
+            ps.setString(2, barangayName);
+
+            ResultSet rs = ps.executeQuery();
+                while (rs.next()){
+                    int id = rs.getInt("id");
+                    idList.add(id);
+                }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+       return idList;
     }
 
 }

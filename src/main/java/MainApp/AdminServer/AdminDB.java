@@ -8,8 +8,11 @@ import AdminModel.Report.Parent.ResponseSpecific;
 import AdminModel.Report.Parent.ResponseSpecificOverView;
 import AdminModel.Report.Parent.ResponseOverviewReport;
 import AdminModel.ResponseModel.ActiveAccounts;
-import AdminModel.ResponseModel.BarangayFamily;
+import BarangayData.BarangayData;
+import DecisionSupport.Prioritizer;
 import MainApp.DataBase.Database;
+import PriorityModels.PriorityLevel;
+import PriorityModels.PriorityType;
 import RMI.AdminInterface;
 import RMI.Constant;
 import Remote.Method.FamilyModel.Family;
@@ -45,7 +48,7 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
     private Object overviewLock;
     private Object activeAccount;
 
-    private BarangayData barangayData = new BarangayData();
+    private BarangayDB barangayData = new BarangayDB();
     private PovertyFactorsData povertyFactorsData = new PovertyFactorsData();
 
     public AdminDB() throws RemoteException {
@@ -219,30 +222,67 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
         return yearList;
     }
 
+    // ADD THREAD HERE
     @Override
-    public ArrayList getBarangayData() throws RemoteException {
-        ArrayList<ResponsePovertyRate> responsePovertyRateList = new ArrayList<ResponsePovertyRate>();
+    public ArrayList getBarangayData(String year) throws RemoteException {
+
+        Connection connection = null;
+        FamilyInfo familyInfo = null;
+        FamilyPoverty familyPoverty = null;
+
+        String brngayName;
+        int unresolvePopulation;
+        int resolvepopulation ;
+
+        ArrayList<FamilyInfo> familyInfoArrayList= new ArrayList<FamilyInfo>();
+        ArrayList<FamilyPoverty> familyPovertyArrayList= new ArrayList<FamilyPoverty>();
+
+        ArrayList<BarangayData> barangayDataList = new ArrayList<BarangayData>();
+
+            String sql = "SELECT\n" +
+                    "  name,\n" +
+                    "  sum(DISTINCT  unresolvepopulation) as unresolvepopulation ,\n" +
+                    "  sum(DISTINCT resolvepopulation) as resolvepopulation \n" +
+                    "FROM barangay\n" +
+                    "\n" +
+                    "WHERE date LIKE ? GROUP BY name";
+
 
                 synchronized (lock1){
 
                     try {
-
                         connection = connectionPool.getConnection();
-                        //  Select name, date,  SUM(unresolvepopulation) from barangay where date = 2014 GROUP BY name,date
-                        String sql = "SELECT name,  sum(unresolvepopulation) as unresolvepopulation\n" +
-                                "FROM barangay\n" +
-                                "WHERE date LIKE ? GROUP BY name \n";;
+
                         PreparedStatement ps = connection.prepareStatement(sql);
                         ps.setString(1, Utility.getCurrentYear() + "%");
+
                         ResultSet rs = ps.executeQuery();
 
                         while (rs.next()){
-                            String brngayName = rs.getString("name");
-                            int unresolvePopulation = rs.getInt("unresolvepopulation");
+                             brngayName = rs.getString("name");
+                             unresolvePopulation = rs.getInt("unresolvepopulation");
+                             resolvepopulation = rs.getInt("resolvepopulation");
 
-                            ResponsePovertyRate bd = new ResponsePovertyRate(brngayName,unresolvePopulation);
-                            responsePovertyRateList.add(bd);
+                                    ArrayList<Integer> idList = FamilyDB.getFamilyIdList(year, brngayName);
 
+                                        for(Integer id: idList){
+                                            familyInfo = FamilyDB.getFamilyData(id);
+                                            familyPoverty = PovertyDB.getFamilyPovertyDataByFamilyId(id);
+
+                                            int children = familyInfo.getNumofChildren();
+                                            familyPoverty =  Prioritizer.addPriorityLevel(familyPoverty, children);
+
+                                            familyInfoArrayList.add(familyInfo);
+                                            familyPovertyArrayList.add(familyPoverty);
+
+                                        }
+                            PriorityLevel priorityLevel = Prioritizer.getBarangayPriorityLevel(familyPovertyArrayList);
+                            PriorityType  priorityType   = Prioritizer.getBarangayPriorityType(familyPovertyArrayList);
+
+                            BarangayData barangayData = new BarangayData(brngayName, unresolvePopulation,
+                                    resolvepopulation, priorityLevel, priorityType);
+
+                            barangayDataList.add(barangayData);
                         }
 
                     } catch (SQLException e) {
@@ -250,10 +290,9 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                     }finally {
                         Utility.closeConnection(connection);
                     }
-
                 }
 
-        return responsePovertyRateList;
+        return barangayDataList;
     }
 
 
@@ -261,11 +300,12 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
     public  ArrayList getFamilyBarangay(Params params) throws RemoteException {
         Connection connection = null;
         ArrayList<Family> list = new ArrayList();
+
         String sql = "SELECT id FROM family WHERE barangayid IN\n" +
                 "(SELECT id FROM barangay WHERE name = ?  AND date LIKE ?)";
 
         try {
-            connection =connectionPool.getConnection();
+            connection = connectionPool.getConnection();
             PreparedStatement ps = connection.prepareStatement(sql);
             ps.setString(1, params.getBarangay1());
             ps.setString(2, String.valueOf(params.getDate()) + "%");

@@ -16,7 +16,7 @@ import java.util.ArrayList;
 /**
  * Created by Didoy on 2/25/2016.
  */
-public class BarangayData {
+public class BarangayDB {
 
     private  JdbcConnectionPool connectionPool  = Database.getConnectionPool();
 
@@ -30,7 +30,7 @@ public class BarangayData {
     private String povertyPopulationOfBarangay;
 
 
-    public BarangayData() {
+    public BarangayDB() {
 
         // overview sql
         povertyPopulationOfeveryBarangay = "SELECT name,  sum(unresolvepopulation) as unresolvepopulation\n" +
