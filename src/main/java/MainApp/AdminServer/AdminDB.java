@@ -210,7 +210,6 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                 }
             }
 
-
         } catch (SQLException e) {
             e.printStackTrace();
         }finally {
@@ -236,7 +235,6 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                         PreparedStatement ps = connection.prepareStatement(sql);
                         ps.setString(1, Utility.getCurrentYear() + "%");
                         ResultSet rs = ps.executeQuery();
-
 
                         while (rs.next()){
                             String brngayName = rs.getString("name");

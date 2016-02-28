@@ -1,5 +1,6 @@
 package MainApp.AdminServer;
 
+import ListModels.ChildrenSchoolCategory;
 import MainApp.DataBase.Database;
 import Remote.Method.FamilyModel.FamilyPoverty;
 import org.h2.jdbcx.JdbcConnectionPool;
@@ -45,9 +46,14 @@ public class PovertyDB {
 
             familyPoverty = new FamilyPoverty();
 
+            ChildrenSchoolCategory childrenCat = null;
+            if ( !(childrenInSchool == null || childrenInSchool.equals("")) ){
+                childrenCat = ChildrenSchoolCategory.valueOf(childrenInSchool.toUpperCase());
+            }
+
             familyPoverty.setYear(localDate);
             familyPoverty.setOccupancy(occupancy);
-            familyPoverty.setChildreninSchool(childrenInSchool);
+            familyPoverty.setChildreninSchool(childrenCat);
             familyPoverty.setIsunderEmployed(underemployed);
             familyPoverty.setHasotherIncome(otherincome);
             familyPoverty.setIsbelow8k(threshold);

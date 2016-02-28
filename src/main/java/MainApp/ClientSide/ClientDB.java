@@ -1,6 +1,7 @@
 package MainApp.ClientSide;
 
 import AdminModel.RequestAccounts;
+import ListModels.ChildrenSchoolCategory;
 import MainApp.ClientIntefaceFactory;
 import MainApp.DataBase.Database;
 import RMI.ClientInterface;
@@ -284,6 +285,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
     // SYNCHRONIZATION DEPEND ON SEARCHLIST
     private ArrayList getSearchList(String name){
+        Connection connection = null;
         ArrayList list  = new ArrayList();
 
         String sqlfamily  = "SELECT * from family where (Lower(name) like ? or Lower (spouse) like ?)  ";
@@ -291,7 +293,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         String sqlfamPoverty = "SELECT * from povertyfactors where familyid = ? ";
 
         try {
-            Connection connection = connectionPool.getConnection();
+             connection = connectionPool.getConnection();
             PreparedStatement ps = connection.prepareStatement(sqlfamily);
             ps.setString(1, "%" + name.toLowerCase() + "%");
             ps.setString(2,"%" +name.toLowerCase()+ "%");
@@ -340,25 +342,31 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 String ownership = povertyRS.getString("ownership");
                 String occupancy = povertyRS.getString("occupancy");
                 String isUnderEmployed = povertyRS.getString("underemployed");
-                String schooldChildren = povertyRS.getString("schoolchildren");
+                 String schooldChildren = povertyRS.getString("schoolchildren");
                 LocalDate year = Utility.StringToLocalDate(povertyRS.getString("year"));
 
+                ChildrenSchoolCategory childrenCat = null;
+                if ( !(schooldChildren == null || schooldChildren.equals("")) ){
+                    childrenCat = ChildrenSchoolCategory.valueOf(schooldChildren.toUpperCase());
+                }
 
                 int month = povertyRS.getInt("month");
 
                 FamilyPoverty familyPoverty = new FamilyPoverty(hasOtherIncome, isBelow8k,
-                        ownership, occupancy, isUnderEmployed, schooldChildren, year, month);
+                        ownership, occupancy, isUnderEmployed, childrenCat, year, month);
 
                 Family fam = new Family(familyinfo, familyPoverty);
 
                 list.add(fam);
 
-            }
+                // notify use for loadbar
 
-            connection.close();
+            }
 
         } catch (SQLException e) {
             e.printStackTrace();
+        }finally {
+            Utility.closeConnection(connection);
         }
 
         if (list.isEmpty()){
@@ -1055,7 +1063,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
             ps.setString(2, familyPoverty.getYear().toString());
             ps.setInt(3,familyPoverty.getMonth());
             ps.setString(4,familyPoverty.getOccupancy());
-            ps.setString(5,familyPoverty.getChildreninSchool());
+            ps.setString(5,familyPoverty.getChildreninSchool().toString());
             ps.setString(6,familyPoverty.getIsunderEmployed());
             ps.setString(7,familyPoverty.getHasotherIncome());
             ps.setString(8,familyPoverty.getIsbelow8k());
@@ -1482,12 +1490,14 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
             ps.setString(1, familyPoverty.getYear().toString());
             ps.setInt   (2,    familyPoverty.getMonth());
             ps.setString(3, familyPoverty.getOccupancy());
-            ps.setString(4, familyPoverty.getChildreninSchool());
+            ps.setString(4, familyPoverty.getChildreninSchool().toString());
             ps.setString(5, familyPoverty.getIsunderEmployed());
             ps.setString(6, familyPoverty.getHasotherIncome());
             ps.setString(7, familyPoverty.getIsbelow8k());
             ps.setString(8, familyPoverty.getOwnership());
             ps.setInt   (9,    familyID);
+
+            ps.executeUpdate();
 
         } catch (SQLException e) {
             e.printStackTrace();
