@@ -106,18 +106,17 @@ public class BarangayData {
         return  totalPoverty;
     }
 
-    // compare Specific
-    public int getPovertyCompareSpecificData(String year, String BarangayName){
+    // compare Specific this comparison include month in date field
+    public int getPovertyCompareSpecificData(String date, String BarangayName){
         Connection connection = null;
 
         int totalPoverty = 0;
         try {
-            String yr = String.valueOf(year);
 
              connection = connectionPool.getConnection();
 
             PreparedStatement ps = connection.prepareStatement(povertyPopulationOfBarangay);
-            ps.setString(1, yr + "%");
+            ps.setString(1, date + "%");
             ps.setString(2, BarangayName);
 
             ResultSet rs = ps.executeQuery();
@@ -153,7 +152,7 @@ public class BarangayData {
                 String date = rs.getString("date");
                 int population = rs.getInt("unresolvepopulation");
 
-                date = Utility.parseDate(date);
+                date = Utility.DateToMonth(date);
                 String month = Utility.rebirtDigitalMonth(date);
 
                 ResponseMonthlyPovertyRate monthlyPovertyRate = new ResponseMonthlyPovertyRate(month, population);

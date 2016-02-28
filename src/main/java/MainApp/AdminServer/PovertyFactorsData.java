@@ -216,7 +216,7 @@ public class PovertyFactorsData {
                 int BelowMinimum = rs.getInt("BelowMinimum");
                 int NoShelter = rs.getInt("NoShelter");
 
-                String month = Utility.parseDate(date);
+                String month = Utility.DateToMonth(date);
                 date = Utility.rebirtDigitalMonth(month);
 
                 Logger.Log(date);
@@ -237,7 +237,7 @@ public class PovertyFactorsData {
         return factorList;
     }
 
-    public ResponsePovertyFactor getSpecificFactors(String year, String BarangayName){
+    public ResponsePovertyFactor getSpecificFactors(String Date, String BarangayName){
         Connection connection = null;
         ResponsePovertyFactor povertyFactors = null;
 
@@ -246,7 +246,7 @@ public class PovertyFactorsData {
 
             PreparedStatement PS = connection.prepareStatement(povertyFactorsSpecificOverview);
             PS.setString(1, BarangayName );
-            PS.setString(2, year + "%");
+            PS.setString(2, Date + "%");
 
             ResultSet rs = PS.executeQuery();
 
@@ -258,7 +258,7 @@ public class PovertyFactorsData {
                 int BelowMinimum = rs.getInt("BelowMinimum");
                 int NoShelter = rs.getInt("NoShelter");
 
-                date = Utility.parseDate(date);
+                date = Utility.DateToMonth(date);
                 String month = Utility.rebirtDigitalMonth(date);
 
                 Logger.Log(date);

@@ -3,15 +3,18 @@ package MainApp.AdminServer;
 import AdminModel.Params;
 import AdminModel.Report.Children.Model.ResponsePovertyFactor;
 import AdminModel.Report.Children.Model.ResponsePovertyRate;
-import AdminModel.Report.Parent.Children.Model.ResponseCompareOverview;
-import AdminModel.Report.Parent.Model.ResponseSpecific;
-import AdminModel.Report.Parent.Model.ResponseSpecificOverView;
-import AdminModel.Report.Parent.Model.ResponseOverviewReport;
+import AdminModel.Report.Parent.ResponseCompareOverview;
+import AdminModel.Report.Parent.ResponseSpecific;
+import AdminModel.Report.Parent.ResponseSpecificOverView;
+import AdminModel.Report.Parent.ResponseOverviewReport;
 import AdminModel.ResponseModel.ActiveAccounts;
 import AdminModel.ResponseModel.BarangayFamily;
 import MainApp.DataBase.Database;
 import RMI.AdminInterface;
 import RMI.Constant;
+import Remote.Method.FamilyModel.Family;
+import Remote.Method.FamilyModel.FamilyInfo;
+import Remote.Method.FamilyModel.FamilyPoverty;
 import org.h2.jdbcx.JdbcConnectionPool;
 import utility.Utility;
 
@@ -177,11 +180,7 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
     @Override
     public ResponseSpecific getSpecific(Params params, String type) throws RemoteException {
 
-        String yr = String.valueOf(params.getYear());
-        String month = params.getStrmonth();
-
-        final  String date = yr+ "-" +month;
-
+        final  String date = params.getDate();
         String barangayName = params.getBarangay1();
 
         int population = barangayData.getPovertyCompareSpecificData(date,barangayName );
@@ -262,29 +261,27 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
     @Override
     public  ArrayList getFamilyBarangay(Params params) throws RemoteException {
-
-        ArrayList<BarangayFamily> list = new ArrayList();
-        String sql = "Select id, name, spouse, date from family where barangayid in \n" +
-                "(Select id from barangay where name = ?  and date Like ? and month = ?)";
+        Connection connection = null;
+        ArrayList<Family> list = new ArrayList();
+        String sql = "SELECT id FROM family WHERE barangayid IN\n" +
+                "(SELECT id FROM barangay WHERE name = ?  AND date LIKE ?)";
 
         try {
             connection =connectionPool.getConnection();
             PreparedStatement ps = connection.prepareStatement(sql);
             ps.setString(1, params.getBarangay1());
-            ps.setString(2, String.valueOf(params.getYear()) + "%");
-            ps.setString(3,  String.valueOf(params.getMonth()));
+            ps.setString(2, String.valueOf(params.getDate()) + "%");
 
             ResultSet rs = ps.executeQuery();
 
             while(rs.next()){
                 int id = rs.getInt("id");
-                String name = rs.getString("name");
-                String spousename = rs.getString("spouse");
-                String date = rs.getString("date");
+                FamilyInfo familyInfo = FamilyDB.getFamilyData(id);
+                FamilyPoverty familyPoverty = PovertyDB.getFamilyPovertyDataByFamilyId(id);
 
-                BarangayFamily barangayFamily = new BarangayFamily(id, name, spousename, date);
-                list.add(barangayFamily);
-
+                Family family = new Family(familyInfo, familyPoverty );
+                list.add(family);
+                // notify admin user to create progressbar
             }
 
         } catch (SQLException e) {
