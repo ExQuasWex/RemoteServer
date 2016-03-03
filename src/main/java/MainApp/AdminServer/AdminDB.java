@@ -516,7 +516,7 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
             case "UnderEmployed": colName = "underemployed";
                 break;
-            case "Illegal Settlers": colName = "ownership";
+            case "No Home": colName = "ownership";
                 break;
 
         }
@@ -535,7 +535,7 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                 break;
             case "UnderEmployed": val = "Yes";
                 break;
-            case "Illegal Settlers": val = "ownership";
+            case "No Home": val = "Illegal settlers";
                 break;
         }
         return val;

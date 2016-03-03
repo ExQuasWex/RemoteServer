@@ -51,11 +51,9 @@ public class PovertyFactorsData {
                 "       ELSE 0\n" +
                 "       END)as BelowMinimum,\n" +
                 "  sum( CASE\n" +
-                "       WHEN (ownership = 'Rental' or ownership = 'Shared' or ownership = 'Informal settler') THEN +1\n" +
+                "       WHEN (ownership = 'Rental' or ownership = 'Shared' or ownership = 'Informal Settler') THEN +1\n" +
                 "       ELSE 0\n" +
-                "       END)as NOshELTER\n" +
-                "\n" +
-                "\n" +
+                "       END)as NoShelter\n" +
                 "from povertyfactors where year like ?";
 
 
@@ -79,9 +77,9 @@ public class PovertyFactorsData {
                 "       ELSE 0\n" +
                 "       END)as BelowMinimum,\n" +
                 "  sum( CASE\n" +
-                "       WHEN (ownership = 'Rental' or ownership = 'Shared' or ownership = 'Informal settler') THEN +1\n" +
+                "       WHEN (ownership = 'Rental' or ownership = 'Shared' or ownership = 'Informal Settler') THEN +1\n" +
                 "       ELSE 0\n" +
-                "       END)as NOshELTER\n" +
+                "       END)as NoShelter\n" +
                 "\n" +
                 "from povertyfactors P\n" +
                 "\n" +
@@ -109,9 +107,9 @@ public class PovertyFactorsData {
                 "       ELSE 0\n" +
                 "       END)as BelowMinimum,\n" +
                 "  sum( CASE\n" +
-                "       WHEN (ownership = 'Rental' or ownership = 'Shared' or ownership = 'Informal settler') THEN +1\n" +
+                "       WHEN (ownership = 'Rental' or ownership = 'Shared' or ownership = 'Informal Settler') THEN +1\n" +
                 "       ELSE 0\n" +
-                "       END)as NOshELTER\n" +
+                "       END)as NoShelter\n" +
                 "from povertyfactors P\n" +
                 "  LEFT JOIN family F ON F.id = P.familyid\n" +
                 "  LEFT JOIN Barangay B ON F.barangayid = B.id\n" +
@@ -128,13 +126,13 @@ public class PovertyFactorsData {
              connection = connectionPool.getConnection();
 
             PreparedStatement PS = connection.prepareStatement(povertyFactorsOfTheCity);
-            PS.setString(1, Utility.getCurrentYear() + "%");
+            PS.setString(1, year + "%");
 
             ResultSet rs = PS.executeQuery();
 
             while (rs.next()){
                 int unemployed = rs.getInt("Unemployed");
-                int underEmployed = rs.getInt("UnderEmployed");
+                int underEmployed = rs.getInt("Underemployed");
                 int noextra = rs.getInt("NoExtra");
                 int BelowMinimum = rs.getInt("BelowMinimum");
                 int NoShelter = rs.getInt("NoShelter");
