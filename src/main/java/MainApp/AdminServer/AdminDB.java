@@ -1,5 +1,7 @@
 package MainApp.AdminServer;
 
+import AdminModel.Enum.FactorCategoryParameter;
+import AdminModel.Enum.ReportCategoryMethod;
 import AdminModel.Params;
 import AdminModel.Report.Children.Model.ResponsePovertyFactor;
 import AdminModel.Report.Children.Model.ResponsePovertyRate;
@@ -19,6 +21,7 @@ import Remote.Method.FamilyModel.Family;
 import Remote.Method.FamilyModel.FamilyInfo;
 import Remote.Method.FamilyModel.FamilyPoverty;
 import org.h2.jdbcx.JdbcConnectionPool;
+import utility.Logger;
 import utility.Utility;
 
 import java.rmi.AlreadyBoundException;
@@ -247,7 +250,6 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                     "\n" +
                     "WHERE date LIKE ? GROUP BY name";
 
-
                 synchronized (lock1){
 
                     try {
@@ -297,18 +299,15 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
 
     @Override
-    public  ArrayList getFamilyBarangay(Params params) throws RemoteException {
+    public  ArrayList getFamilyBarangay(Params params, ReportCategoryMethod method) throws RemoteException {
         Connection connection = null;
+        PreparedStatement ps = null;
         ArrayList<Family> list = new ArrayList();
-
-        String sql = "SELECT id FROM family WHERE barangayid IN\n" +
-                "(SELECT id FROM barangay WHERE name = ?  AND date LIKE ?)";
 
         try {
             connection = connectionPool.getConnection();
-            PreparedStatement ps = connection.prepareStatement(sql);
-            ps.setString(1, params.getBarangay1());
-            ps.setString(2, String.valueOf(params.getDate()) + "%");
+
+            ps = getPrepareStatement(params, method, connection );
 
             ResultSet rs = ps.executeQuery();
 
@@ -367,6 +366,179 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
         return list;
     }
+    private boolean isFactorType(String xValue ){
+        boolean isFactortType = false;
+        for(FactorCategoryParameter c : FactorCategoryParameter.values()){
+            if (c.toString().equals(xValue)){
+                isFactortType = true;
+            }
+        }
+        return isFactortType;
+    }
 
+    private PreparedStatement getPrepareStatement(Params params, ReportCategoryMethod method, Connection connection){
+        PreparedStatement ps = null;
+        String xValue = params.getxValue();
+
+       boolean isFactortType =  isFactorType( xValue );
+
+        String sql = "SELECT id FROM family WHERE barangayid IN\n" +
+                "(SELECT id FROM barangay WHERE name = ?  AND date LIKE ?)";
+
+
+        if (method != null){
+
+                    if (isFactortType){
+                        ps = getFatortTypePreparedStatement(connection, params, method);
+
+                    }else{
+
+                        ps = getPovertyPopulationPreparedStatement(connection, params, method);
+                    }
+        }
+        else {
+
+                try {
+                    ps = connection.prepareStatement(sql);
+
+                    String barangayName = params.getBarangay1();
+                    String date =  params.getDate() + "%";
+
+                    ps.setString(1,barangayName);
+                    ps.setString(2, date + "%");
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+
+        }
+
+        return ps;
+    }
+
+    private PreparedStatement getFatortTypePreparedStatement(Connection connection, Params params, ReportCategoryMethod method){
+        PreparedStatement ps = null;
+
+        String factor = params.getxValue();
+        String barangayName = params.getBarangay1();
+        String date = params.getDate();
+
+        String colName = getColumnName(factor);
+        String value = getParseXvalue(factor);
+
+        String sql = "SELECT F.id FROM family F\n" +
+                "  LEFT JOIN povertyfactors P ON P.familyid = F.id\n" +
+                "WHERE barangayid IN\n" +
+                    "      (SELECT id FROM barangay WHERE name = ?  AND date LIKE ?)" +
+                " AND P."+ colName +   " = ? ";
+
+        String sql2 = "SELECT F.id FROM family F\n" +
+                "  LEFT JOIN povertyfactors P ON P.familyid = F.id\n" +
+                "WHERE barangayid IN\n" +
+                "      (SELECT id FROM barangay where date LIKE ?)" +
+                " AND P."+ colName +   " = ? ";
+
+
+        try {
+                if (method == ReportCategoryMethod.OVERVIEW || method == ReportCategoryMethod.COMPARE_OVERVIEW ){
+                    ps = connection.prepareStatement(sql2);
+
+                    ps.setString(1, date + "%");
+                    ps.setString(2, value);
+
+                    System.out.println("Column name: " + colName + " DBValue: " + value);
+                }else {
+                    ps = connection.prepareStatement(sql);
+
+                    ps.setString(1,barangayName);
+                    ps.setString(2, date + "%");
+                    ps.setString(3, value);
+
+                    System.out.println("Column name: " + colName + " DBValue: " + value);
+
+                }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return  ps;
+
+    }
+    private PreparedStatement getPovertyPopulationPreparedStatement(Connection connection, Params params, ReportCategoryMethod method){
+        PreparedStatement ps = null;
+
+        String barangayName = params.getBarangay1();
+        String date = params.getDate();
+
+
+        String sql = "SELECT id FROM family WHERE barangayid IN\n" +
+                "(SELECT id FROM barangay WHERE name = ?  AND date LIKE ?)";
+
+        String sql2 = "SELECT id FROM family WHERE barangayid IN\n" +
+                "(SELECT id FROM barangay where date LIKE ?)";
+
+
+
+        try {
+            ps = connection.prepareStatement(sql);
+
+            ps.setString(1,barangayName);
+            ps.setString(2, date + "%");
+
+
+            if (method == ReportCategoryMethod.OVERVIEW || method == ReportCategoryMethod.COMPARE_OVERVIEW){
+                ps = connection.prepareStatement(sql2);
+                ps.setString(1, date + "%");
+
+            }else {
+                ps = connection.prepareStatement(sql);
+
+                ps.setString(1,barangayName);
+                ps.setString(2, date + "%");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return ps;
+    }
+
+    private String getColumnName(String value){
+        String colName = "";
+        switch (value){
+            case "Unemployed": colName = "occupancy";
+                break;
+            case "No other Income": colName = "otherincome";
+                break;
+            case "Below City Threshold": colName = "threshold";
+                break;
+
+            case "UnderEmployed": colName = "underemployed";
+                break;
+            case "Illegal Settlers": colName = "ownership";
+                break;
+
+        }
+
+        return  colName;
+    }
+
+    private String getParseXvalue(String xValue){
+        String val = "";
+        switch (xValue){
+            case "Unemployed": val = "Unemployed";
+                break;
+            case "No other Income": val = "No";
+                break;
+            case "Below City Threshold": val = "Yes";
+                break;
+            case "UnderEmployed": val = "Yes";
+                break;
+            case "Illegal Settlers": val = "ownership";
+                break;
+        }
+        return val;
+    }
 
 }

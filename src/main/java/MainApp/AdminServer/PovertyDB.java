@@ -4,6 +4,7 @@ import ListModels.ChildrenSchoolCategory;
 import MainApp.DataBase.Database;
 import Remote.Method.FamilyModel.FamilyPoverty;
 import org.h2.jdbcx.JdbcConnectionPool;
+import utility.Logger;
 import utility.Utility;
 
 import java.sql.Connection;
@@ -23,6 +24,14 @@ public class PovertyDB {
         Connection connection = null;
         FamilyPoverty familyPoverty = null;
 
+        String date = null;
+        String occupancy = null;
+        String childrenInSchool = null;
+        String underemployed = null;
+        String otherincome = null;
+        String threshold = null;
+        String ownership = null;
+
         String sql = "Select * from povertyfactors where familyid = ?";
 
         try {
@@ -30,19 +39,21 @@ public class PovertyDB {
             PreparedStatement ps = connection.prepareStatement(sql);
             ps.setInt(1, id);
 
+            Logger.Log("Family id: " + id);
             ResultSet rs = ps.executeQuery();
 
-            rs.next();
+            if (rs.next()) {
+                date = rs.getString("year");
+                occupancy = rs.getString("occupancy");
+                childrenInSchool = rs.getString("schoolchildren");
+                underemployed = rs.getString("underemployed");
+                otherincome = rs.getString("otherincome");
+                threshold = rs.getString("threshold");
+                ownership = rs.getString("ownership");
+            }
 
-            String date = rs.getString("year");
-            String occupancy = rs.getString("occupancy");
-            String childrenInSchool = rs.getString("schoolchildren");
-            String underemployed = rs.getString("underemployed");
-            String otherincome = rs.getString("otherincome");
-            String threshold = rs.getString("threshold");
-            String ownership = rs.getString("ownership");
-
-            LocalDate localDate =  Utility.StringToLocalDate(date);
+           //LocalDate localDate =  Utility.StringToLocalDate(date);
+            LocalDate localDate =  LocalDate.parse(date);
 
             familyPoverty = new FamilyPoverty();
 

@@ -85,6 +85,8 @@ public class FamilyDB {
 
         } catch (SQLException e) {
             e.printStackTrace();
+        }finally {
+            Utility.closeConnection(connection);
         }
 
        return idList;

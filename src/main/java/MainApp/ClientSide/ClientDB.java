@@ -969,7 +969,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
 
     private boolean addToBarangay(Family family, Connection connection){
-    boolean isValid = false;
+    boolean isSave = false;
+    int familyID = 0;
 
         String updateBarangay = "Update barangay  SET Unresolvepopulation = Unresolvepopulation + 1 where id = ?";
 
@@ -977,10 +978,11 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
             try {
                 Logger.Log("addToBarangay");
-                // check if barangay is already existing
+
                 String barangayName = family.getFamilyinfo().getBarangay();
                 LocalDate date =  family.getFamilyinfo().getSurveyedYr();
 
+                // check if barangay is already existing
                 boolean existing = isBarangayExisting(barangayName, date.toString(), connection);
 
                         if (existing){
@@ -999,54 +1001,51 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                             barangayID = createNewBarangay(barangayName, date);
                         }
 
-                isValid = addFamily(family,barangayID,connection);
+                familyID  = addFamily(family.getFamilyinfo(),barangayID,connection);
+
+                isSave  = addPovertyFactors(family.getFamilypoverty(),familyID,connection);
 
             } catch (SQLException e) {
-                isValid = false;
                 e.printStackTrace();
             }
-    return isValid;
+    return isSave;
     }
 
-    private boolean  addFamily(Family family, int barangayID, Connection connection){
-        boolean isSucess = false;
+    private int  addFamily(FamilyInfo familyInfo, int barangayID, Connection connection){
         int familyID = 0;
 
         String addFamilySql = "Insert INTO family (barangayid,date,name,maritalstatus,age,spouse," +
                 "address,childrenno,gender,yrresidency,yrissued,clientid)" +
                 "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
         try {
-            int numofChildren = family.getFamilyinfo().getNumofChildren();
+            int numofChildren = familyInfo.getNumofChildren();
             PreparedStatement ps = connection.prepareStatement(addFamilySql, Statement.RETURN_GENERATED_KEYS);
             ps.setInt(1, barangayID);
-            ps.setString(2,family.getFamilyinfo().getInputDate());
-            ps.setString(3,family.getFamilyinfo().getName());
-            ps.setString(4,family.getFamilyinfo().getMaritalStatus());
-            ps.setString(5,family.getFamilyinfo().getAge());
-            ps.setString(6,family.getFamilyinfo().getSpouseName());
-            ps.setString(7,family.getFamilyinfo().getAddress());
+            ps.setString(2,familyInfo.getInputDate());
+            ps.setString(3,familyInfo.getName());
+            ps.setString(4,familyInfo.getMaritalStatus());
+            ps.setString(5,familyInfo.getAge());
+            ps.setString(6,familyInfo.getSpouseName());
+            ps.setString(7,familyInfo.getAddress());
             ps.setInt(8,numofChildren);
-            ps.setString(9,family.getFamilyinfo().getGender());
-            ps.setInt(10, family.getFamilyinfo().getResidencyYr());
-            ps.setString(11, family.getFamilyinfo().getSurveyedYr().toString());
-            ps.setInt(12,family.getFamilyinfo().getClientID());
+            ps.setString(9,familyInfo.getGender());
+            ps.setInt(10, familyInfo.getResidencyYr());
+            ps.setString(11,familyInfo.getSurveyedYr().toString());
+            ps.setInt(12,familyInfo.getClientID());
 
             int row = ps.executeUpdate();
             ResultSet rs = ps.getGeneratedKeys();
-            if (row == 1 && rs.next()){
-                familyID = rs.getInt(1);
-               isSucess = addPovertyFactors(family.getFamilypoverty(),familyID,connection);
 
-            }else{
-                isSucess = false;
+                rs.next();
+            if (row == 1 ){
+                familyID = rs.getInt(1);
             }
 
         } catch (SQLException e) {
-            isSucess = false;
             e.printStackTrace();
         }
 
-        return isSucess;
+        return familyID;
     }
 
     public boolean addPovertyFactors(FamilyPoverty familyPoverty, int familyId, Connection connection){
@@ -1058,27 +1057,32 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
         //
         try {
+            String childrenInSchool = "";
+            if (familyPoverty.getChildreninSchool() != null) {
+                childrenInSchool = familyPoverty.getChildreninSchool().toString();
+            }
+
             PreparedStatement ps = connection.prepareStatement(addPovertySql);
-            ps.setInt(1,familyId);
+            ps.setInt(1, familyId);
             ps.setString(2, familyPoverty.getYear().toString());
-            ps.setInt(3,familyPoverty.getMonth());
-            ps.setString(4,familyPoverty.getOccupancy());
-            ps.setString(5,familyPoverty.getChildreninSchool().toString());
-            ps.setString(6,familyPoverty.getIsunderEmployed());
-            ps.setString(7,familyPoverty.getHasotherIncome());
-            ps.setString(8,familyPoverty.getIsbelow8k());
-            ps.setString(9,familyPoverty.getOwnership());
+            ps.setInt(3, familyPoverty.getMonth());
+            ps.setString(4, familyPoverty.getOccupancy());
+            ps.setString(5, childrenInSchool);
+            ps.setString(6, familyPoverty.getIsunderEmployed());
+            ps.setString(7, familyPoverty.getHasotherIncome());
+            ps.setString(8, familyPoverty.getIsbelow8k());
+            ps.setString(9, familyPoverty.getOwnership());
 
             int row = ps.executeUpdate();
-                if (row == 1) {
-                    isAdded =  true;
-                }
+            if (row == 1) {
+                isAdded = true;
+                System.out.println("sucessfully added Family");
+            }
 
         } catch (SQLException e) {
             isAdded = false;
             e.printStackTrace();
         }
-        System.out.println("sucessfully added Family");
         return isAdded;
     }
 
@@ -1328,6 +1332,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         boolean isEdited = false;
         Connection connection = null;
         synchronized (UpdateFamilyLock){
+
                 try {
                     int oldBarangayID = 0;
                     int newBarangayID = 0;
@@ -1485,12 +1490,18 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 "WHERE familyid = ?";
 
         try {
+
+            String childrenInSchool = "";
+            if (familyPoverty.getChildreninSchool() != null) {
+                childrenInSchool = familyPoverty.getChildreninSchool().toString();
+            }
+
             PreparedStatement  ps = connection.prepareStatement(povertySql);
 
             ps.setString(1, familyPoverty.getYear().toString());
             ps.setInt   (2,    familyPoverty.getMonth());
             ps.setString(3, familyPoverty.getOccupancy());
-            ps.setString(4, familyPoverty.getChildreninSchool().toString());
+            ps.setString(4, childrenInSchool);
             ps.setString(5, familyPoverty.getIsunderEmployed());
             ps.setString(6, familyPoverty.getHasotherIncome());
             ps.setString(7, familyPoverty.getIsbelow8k());
