@@ -18,7 +18,7 @@ import java.util.ArrayList;
  */
 public class BarangayDB {
 
-    private  JdbcConnectionPool connectionPool  = Database.getConnectionPool();
+    private  static  JdbcConnectionPool connectionPool  = Database.getConnectionPool();
 
     // overview sql
     private String povertyPopulationOfeveryBarangay;
@@ -168,6 +168,29 @@ public class BarangayDB {
         }
 
         return list;
+    }
+
+    public static  String getBarangayNameById(int id){
+        Connection connection = null;
+        String sql = "Select name from barangay where id = ?";
+        String barangayName = "";
+
+        try {
+            connection = connectionPool.getConnection();
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setInt(1, id);
+
+            ResultSet rs = ps.executeQuery();
+
+                rs.next();
+                barangayName = rs.getString("name");
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            Utility.closeConnection(connection);
+        }
+     return  barangayName;
     }
 
 

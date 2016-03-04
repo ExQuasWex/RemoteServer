@@ -1,7 +1,11 @@
 package MainApp.ClientSide;
 
 import AdminModel.RequestAccounts;
-import ListModels.ChildrenSchoolCategory;
+import Remote.Method.FamilyModel.FamilyHistory;
+import MainApp.AdminServer.BarangayDB;
+import MainApp.AdminServer.FamilyDB;
+import MainApp.AdminServer.HistoryDB;
+import MainApp.AdminServer.PovertyDB;
 import MainApp.ClientIntefaceFactory;
 import MainApp.DataBase.Database;
 import RMI.ClientInterface;
@@ -22,7 +26,6 @@ import utility.Logger;
 import utility.Utility;
 
 import java.rmi.AlreadyBoundException;
-import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -39,6 +42,8 @@ import java.util.*;
 public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
     private boolean isRegistered;
+
+    private PovertyDB povertyDB = new PovertyDB();
 
     private final Object lock1;
     private final Object lock2;
@@ -62,7 +67,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     private final Object UpdateFamilyLock;
 
     private String methodIdentifier;
-    int currentMonth = Utility.getCurrentMonth();
 
     // CLient Credential
     private int PORT = 0;
@@ -286,81 +290,46 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     // SYNCHRONIZATION DEPEND ON SEARCHLIST
     private ArrayList getSearchList(String name){
         Connection connection = null;
+        FamilyHistory familyHistory = null;
         ArrayList list  = new ArrayList();
+        String barangayName;
 
-        String sqlfamily  = "SELECT * from family where (Lower(name) like ? or Lower (spouse) like ?)  ";
-        String sqlgetbarangay = "Select name from barangay where id = ?";
-        String sqlfamPoverty = "SELECT * from povertyfactors where familyid = ? ";
+        String sqlfamily  = "SELECT id from family where (Lower(name) like ? or Lower (spouse) like ?)  ";
+        String sqlgetbarangay = "Select barangayid from family where id = ?";
 
         try {
-             connection = connectionPool.getConnection();
+            connection = connectionPool.getConnection();
+
+            PreparedStatement brgyps = connection.prepareStatement(sqlgetbarangay);
+
             PreparedStatement ps = connection.prepareStatement(sqlfamily);
             ps.setString(1, "%" + name.toLowerCase() + "%");
-            ps.setString(2,"%" +name.toLowerCase()+ "%");
+            ps.setString(2, "%" + name.toLowerCase()+  "%");
 
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()){
+                int id = rs.getInt(1);
 
-                // get family information
-                int familyid = rs.getInt("id");
-                int clientid = rs.getInt("clientid");
-                int barangayid = rs.getInt("barangayid");
-                String date = rs.getString("date");
-                String Name = rs.getString("name");
-                String maritalStat = rs.getString("maritalstatus");
-                String age = rs.getString("age");
-                String spouse = rs.getString("spouse");
-                String address = rs.getString("address");
-                int childrenNo = rs.getInt("childrenno");
-                String gender = rs.getString("gender");
-                int yrResidency = rs.getInt("yrresidency");
-                LocalDate YrIssued = Utility.StringToLocalDate(rs.getString("yrissued"));
+                FamilyInfo familyinfo = FamilyDB.getFamilyData(id);
+                FamilyPoverty familyPoverty = povertyDB.getFamilyPovertyDataByFamilyId(id);
+                familyHistory = HistoryDB.getFamilyHistoryById(id);
 
-                // get the barangay name
-                ps = connection.prepareStatement(sqlgetbarangay);
-                ps.setInt(1, barangayid);
+                brgyps.setInt(1,id);
 
-                ResultSet barangayRS = ps.executeQuery();
+                ResultSet brgyRs = brgyps.executeQuery();
 
-                barangayRS.next();
-                String barangayName = barangayRS.getString("name");
-
-                // create object family
-                FamilyInfo familyinfo = new FamilyInfo(clientid, date, YrIssued, yrResidency,
-                        childrenNo, Name, spouse, age, maritalStat, barangayName, gender, address);
-                familyinfo.setfamilyId(familyid);
-
-                // get family poverty factors information
-                ps = connection.prepareStatement(sqlfamPoverty);
-                ps.setInt(1, familyid);
-                ResultSet povertyRS = ps.executeQuery();
-
-                povertyRS.next();
-                String hasOtherIncome = povertyRS.getString("otherincome");
-                String isBelow8k = povertyRS.getString("threshold");
-                String ownership = povertyRS.getString("ownership");
-                String occupancy = povertyRS.getString("occupancy");
-                String isUnderEmployed = povertyRS.getString("underemployed");
-                 String schooldChildren = povertyRS.getString("schoolchildren");
-                LocalDate year = Utility.StringToLocalDate(povertyRS.getString("year"));
-
-                ChildrenSchoolCategory childrenCat = null;
-                if ( !(schooldChildren == null || schooldChildren.equals("")) ){
-                    childrenCat = ChildrenSchoolCategory.valueOf(schooldChildren.toUpperCase());
+                if (brgyRs.next()){
+                    int brgayID = brgyRs.getInt(1);
+                     barangayName = BarangayDB.getBarangayNameById(brgayID);
+                     familyinfo.setBarangay(barangayName);
                 }
 
-                int month = povertyRS.getInt("month");
-
-                FamilyPoverty familyPoverty = new FamilyPoverty(hasOtherIncome, isBelow8k,
-                        ownership, occupancy, isUnderEmployed, childrenCat, year, month);
-
-                Family fam = new Family(familyinfo, familyPoverty);
+                Family fam = new Family(familyinfo, familyPoverty, familyHistory);
 
                 list.add(fam);
 
                 // notify use for loadbar
-
             }
 
         } catch (SQLException e) {

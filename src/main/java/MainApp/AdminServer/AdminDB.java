@@ -366,6 +366,15 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
         return list;
     }
+
+    @Override
+    public boolean addHistoryToFamily(Family family) throws RemoteException {
+
+
+
+        return false;
+    }
+
     private boolean isFactorType(String xValue ){
         boolean isFactortType = false;
         for(FactorCategoryParameter c : FactorCategoryParameter.values()){
