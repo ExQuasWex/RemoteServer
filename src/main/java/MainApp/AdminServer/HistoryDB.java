@@ -59,14 +59,28 @@ public class HistoryDB {
         Connection connection = null;
         boolean isAdded = false;
 
-        String sql = "Insert Into history (familyID, date, adminID, action_taken, revoke, revoke_description)" +
+        String sql = "Insert Into history (familyID, date, admin_name, action_taken, revoke, revoke_description)" +
                 "Values (?,?,?,?,?,?)";
         try {
             FamilyInfo familyInfo = family.getFamilyinfo();
+            FamilyHistory familyHistory = family.getFamilyHistory();
             connection = connectionPool.getConnection();
+
+            String date = familyHistory.getDate();
+            Date sqlDate = Date.valueOf(date);
 
             PreparedStatement ps = connection.prepareStatement(sql);
             ps.setInt(1, familyInfo.familyId());
+            ps.setDate(2, sqlDate);
+            ps.setString(3, familyHistory.getAdminName());
+            ps.setString(4, familyHistory.getAction());
+            ps.setBoolean(5, familyHistory.isRevoke());
+            ps.setString(6, familyHistory.getRevokeDescription());
+
+           int  i =  ps.executeUpdate();
+            if (i == 1){
+                isAdded = true;
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }finally {

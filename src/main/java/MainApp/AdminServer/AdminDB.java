@@ -370,9 +370,16 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
     @Override
     public boolean addHistoryToFamily(Family family) throws RemoteException {
 
+        int barangayId = family.getFamilyinfo().getBarangayID();
+        boolean isAdded = BarangayDB.addResolvePopulationById(barangayId);
+        boolean isAdded2 = HistoryDB.addHistoryToFamily(family);
 
+        if (isAdded && isAdded2){
+            return true;
+        }else {
+            return false;
 
-        return false;
+        }
     }
 
     private boolean isFactorType(String xValue ){

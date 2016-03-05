@@ -34,9 +34,11 @@ public class FamilyDB {
 
             rs.next();
             int famid = rs.getInt("id");
+            int barangayId = rs.getInt("barangayid");
             int yrResidency = rs.getInt("yrresidency");
             int numOfChildren = rs.getInt("childrenno");
             String name = rs.getString("name");
+            String address = rs.getString("address");
             String spouseName = rs.getString("spouse");
             String age = rs.getString("age");
             String maritalstatus = rs.getString("maritalstatus");
@@ -45,6 +47,7 @@ public class FamilyDB {
             String inputDate = rs.getString("date");
             String dateIssued = rs.getString("yrissued");
             LocalDate dateIssue = Utility.StringToLocalDate(dateIssued);
+            String barangayName = BarangayDB.getBarangayNameById(barangayId);
 
             familyInfo =
                     new FamilyInfo(famid, yrResidency, numOfChildren, name,
@@ -52,7 +55,9 @@ public class FamilyDB {
 
             familyInfo.setInputDate(inputDate);
             familyInfo.setSurveyedYr(dateIssue);
-
+            familyInfo.setAddress(address);
+            familyInfo.setBarangay(barangayName);
+            familyInfo.setBarangayID(barangayId);
         } catch (SQLException e) {
             e.printStackTrace();
         }finally {
