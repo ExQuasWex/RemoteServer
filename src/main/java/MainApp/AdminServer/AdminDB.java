@@ -50,6 +50,7 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
     private Object connectionLock;
     private Object overviewLock;
     private Object activeAccount;
+    private Object historyLock;
 
     private BarangayDB barangayData = new BarangayDB();
     private PovertyFactorsData povertyFactorsData = new PovertyFactorsData();
@@ -60,6 +61,7 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
         lock1 = new Object();
         overviewLock = new Object();
         activeAccount = new Object();
+        historyLock = new Object();
 
         connectionPool = Database.getConnectionPool();
         Database.setMaxConnection(40);
@@ -370,29 +372,36 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
     @Override
     public boolean addHistoryToFamily(Family family) throws RemoteException {
 
-        int barangayId = family.getFamilyinfo().getBarangayID();
-        boolean isAdded = BarangayDB.addResolvePopulationById(barangayId);
-        boolean isAdded2 = HistoryDB.addHistoryToFamily(family);
+        synchronized (historyLock){
 
-        if (isAdded && isAdded2){
-            return true;
-        }else {
-            return false;
+            int barangayId = family.getFamilyinfo().getBarangayID();
+            boolean isAdded = BarangayDB.addResolvePopulationById(barangayId);
+            boolean isAdded2 = HistoryDB.addHistoryToFamily(family);
 
-        }
-    }
-
-    private boolean isFactorType(String xValue ){
-        boolean isFactortType = false;
-        for(FactorCategoryParameter c : FactorCategoryParameter.values()){
-            if (c.toString().equals(xValue)){
-                isFactortType = true;
+                if (isAdded && isAdded2){
+                    return true;
+                }else {
+                    return false;
+                }
             }
         }
-        return isFactortType;
-    }
 
-    private PreparedStatement getPrepareStatement(Params params, ReportCategoryMethod method, Connection connection){
+        @Override
+        public void shutDownServer() throws RemoteException {
+            System.exit(0);
+            }
+
+        private boolean isFactorType(String xValue ){
+            boolean isFactortType = false;
+            for(FactorCategoryParameter c : FactorCategoryParameter.values()){
+                if (c.toString().equals(xValue)){
+                    isFactortType = true;
+                }
+            }
+            return isFactortType;
+        }
+
+        private PreparedStatement getPrepareStatement(Params params, ReportCategoryMethod method, Connection connection){
         PreparedStatement ps = null;
         String xValue = params.getxValue();
 

@@ -32,10 +32,16 @@ public class Server extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+
+        SynchDatabase();
         StartServer();
         addServerToTrayIcon();
     }
 
+
+    private  static void SynchDatabase(){
+        Database.SynchDB();
+    }
     public static void StartServer(){
         try {
 
@@ -111,6 +117,7 @@ public class Server extends Application {
             @Override
             public void actionPerformed(ActionEvent e) {
                 tray.remove(trayIcon);
+                SynchDatabase();
                 System.exit(0);
             }
         });
@@ -121,7 +128,6 @@ public class Server extends Application {
 
             }
         });
-
 
         // add trayAIcon to tray
         try {

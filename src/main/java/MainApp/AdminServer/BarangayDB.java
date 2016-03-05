@@ -197,7 +197,7 @@ public class BarangayDB {
         Connection connection = null;
         boolean isAdded = false;
 
-        String sql = "Update barangay set resolvepopulation = +1 where id = ?";
+        String sql = "Update barangay set resolvepopulation = resolvepopulation +1 where id = ?";
         try {
             connection = connectionPool.getConnection();
 
