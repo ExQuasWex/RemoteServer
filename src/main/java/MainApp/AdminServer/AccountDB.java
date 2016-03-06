@@ -49,6 +49,7 @@ public class AccountDB {
         String sql = "UPDATE account SET requestStatus  = ? WHERE id = ?";
 
         try {
+
             connection = connectionPool.getConnection();
 
             PreparedStatement ps = connection.prepareStatement(sql);
@@ -56,7 +57,7 @@ public class AccountDB {
             ps.setInt(2, id);
 
             int i = ps.executeUpdate();
-            if (i == 1) {
+            if (i == 1 && deleteStaffByAccountId(id, connection)) {
                 isUpdated = true;
             }
 
@@ -106,6 +107,52 @@ public class AccountDB {
         }
         return isUpdated;
     }
+
+    public static boolean deleteStaffByAccountId(int id, Connection connection) {
+        boolean isUpdated = false;
+        String sql = "Delete FROM client WHERE accountid = ?";
+
+        try {
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setInt(1, id);
+
+            int i = ps.executeUpdate();
+            if (i == 1) {
+                isUpdated = true;
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            Utility.closeConnection(connection);
+        }
+        return isUpdated;
+    }
+    public static boolean deleteAccount(int id) {
+        boolean isUpdated = false;
+        Connection connection = null;
+        String sql = "Delete FROM account WHERE id = ?";
+
+        try {
+            connection = connectionPool.getConnection();
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setInt(1, id);
+
+            int i = ps.executeUpdate();
+            if (i == 1) {
+                isUpdated = true;
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            Utility.closeConnection(connection);
+        }
+        return isUpdated;
+    }
+
+
 
 
     // transger personal informations after approveing account

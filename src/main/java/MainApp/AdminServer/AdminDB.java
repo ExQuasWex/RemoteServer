@@ -13,6 +13,7 @@ import AdminModel.Report.Parent.ResponseOverviewReport;
 import AdminModel.ResponseModel.ActiveAccounts;
 import BarangayData.BarangayData;
 import DecisionSupport.Prioritizer;
+import MainApp.ClientSide.OnlineClientArrayList;
 import MainApp.DataBase.Database;
 import MainApp.Preferences.Preference;
 import PriorityModels.PriorityLevel;
@@ -22,6 +23,7 @@ import RMI.Constant;
 import Remote.Method.FamilyModel.Family;
 import Remote.Method.FamilyModel.FamilyInfo;
 import Remote.Method.FamilyModel.FamilyPoverty;
+import javafx.scene.control.Alert;
 import org.h2.jdbcx.JdbcConnectionPool;
 import utility.Utility;
 
@@ -80,6 +82,9 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
             getYears();
 
         } catch (RemoteException e) {
+            Utility.showConfirmationMessage("Server can only run one instance at the same time", Alert.AlertType.ERROR);
+
+            System.exit(0);
             e.printStackTrace();
         } catch (AlreadyBoundException e) {
             e.printStackTrace();
@@ -342,7 +347,7 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
         String sql = "\n" +
                 "SELECT A.id, user, C.name, A.requeststatus, A.status FROM account A \n" +
                 "LEFT JOIN client C ON C.accountid = A.id\n" +
-                "WHERE (A.requeststatus = 'APPROVED' or A.requeststatus = 'DISABLE'  or A.requeststatus = 'REJECTED') and A.role = 'Client'";
+                "WHERE (A.requeststatus = 'APPROVED' or A.requeststatus = 'DISABLE'  or A.requeststatus = 'REJECT') and A.role = 'Client'";
 
             synchronized (activeAccount){
 
@@ -400,12 +405,22 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
     @Override
     public boolean updateAccountStatus(int id, AccountStatus status) throws RemoteException {
-        return  AccountDB.updateAccountStatusByID(id, status);
+        if (status == AccountStatus.DELETE){
+            return AccountDB.deleteAccount(id);
+        }else {
+            return  AccountDB.updateAccountStatusByID(id, status);
+        }
+
     }
 
     @Override
     public boolean approveAccount(int id, AccountApproveStatus status) throws RemoteException {
         return AccountDB.approveAccount(id, status);
+    }
+
+    @Override
+    public boolean isTheAccountOnline(String username) throws RemoteException {
+        return OnlineClientArrayList.getInstance().isTheAccountOnline(username);
     }
 
     private boolean isFactorType(String xValue ){

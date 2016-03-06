@@ -16,23 +16,20 @@ import java.util.Iterator;
 /**
  * Created by reiner on 11/23/2015.
  */
-class OnlineClientArrayList extends ArrayList<OnlineClient> implements Runnable {
+public class OnlineClientArrayList extends ArrayList<OnlineClient> implements Runnable {
 
     private TimedRMIclientSocketFactory csf;
-    private  int x = 0;
-    private Registry reg;
     private Thread thread;
+    private static OnlineClientArrayList onlineClientslist = new OnlineClientArrayList();
 
-    public OnlineClientArrayList() throws RemoteException {
+    public OnlineClientArrayList()  {
 
          csf = new TimedRMIclientSocketFactory(6000);
 
          thread = new Thread(this){
         };
 
-
             thread.start();
-
 
     }
 
@@ -69,10 +66,8 @@ class OnlineClientArrayList extends ArrayList<OnlineClient> implements Runnable 
                     Registry reg = LocateRegistry.getRegistry( System.setProperty("java.rmi.server.hostname",
                           client.getIpaddress()), client.getPort() ,csf);
 
-
                     ClientInterface Ci = (ClientInterface) reg.lookup(client.getREMOTE_ID());
                     Ci.imAlive();
-
 
                 } catch (RemoteException e) {
                     ite.remove();
@@ -136,5 +131,25 @@ class OnlineClientArrayList extends ArrayList<OnlineClient> implements Runnable 
     return  returnclient;
     }
 
+    public  boolean isTheAccountOnline(String username){
+        boolean isOnline =false;
+        Iterator iterator = iterator();
+
+        while (iterator.hasNext()){
+            OnlineClient client = (OnlineClient) iterator.next();
+
+            if (client.getUsername().equals(username)){
+                isOnline = true;
+            }
+        }
+        return isOnline;
+    }
+
+    public static OnlineClientArrayList getInstance(){
+        if (onlineClientslist == null){
+            onlineClientslist = new OnlineClientArrayList();
+        }
+        return onlineClientslist;
+    }
 
 }

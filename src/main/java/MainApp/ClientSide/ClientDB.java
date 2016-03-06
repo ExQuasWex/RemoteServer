@@ -115,8 +115,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         connectionPool = Database.getConnectionPool();
         Database.setMaxConnection(40);
 
-
-        onlineClientArrayList = new OnlineClientArrayList();
+        onlineClientArrayList = OnlineClientArrayList.getInstance();
 
     }
     public void StartClientServer(){
