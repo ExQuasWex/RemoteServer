@@ -168,9 +168,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                     }finally {
                         Utility.closeConnection(connection);
                     }
-
             }
-
 
         }
 
@@ -411,155 +409,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         return requestList;
     }
 
-    // Use for tableItemListener
-    @Override
-    public boolean Approve(RequestAccounts ra) {
-        Connection connection = null;
-        boolean isApproved = false;
-
-        String sql = "Update account SET requestStatus = 'Approved' WHERE id = ?";
-                synchronized (ApprovedLock){
-                        try {
-                            connection = connectionPool.getConnection();
-
-                            PreparedStatement ps = connection.prepareStatement(sql);
-                            ps.setInt(1,ra.getId());
-
-                            int row = ps.executeUpdate();
-
-
-                                    if (row >= 1 && TransferInformation(ra.getId())){
-                                        isApproved = true;
-                                    }else {
-                                        isApproved = false;
-                                    }
-
-                            connection.close();
-                        } catch (SQLException e) {
-                            isApproved = true;
-                            e.printStackTrace();
-                        }
-                }
-
-        return isApproved;
-    }
-
-    @Override
-    public boolean ApproveAdmin(RequestAccounts ra)  {
-        Connection connection = null;
-        boolean isActivated = false;
-
-        String sql = "Update account set requeststatus = 'Approved', Role = 'Admin' where id= ?";
-
-                synchronized (ApprovedAdminLock){
-                            try {
-                                connection = connectionPool.getConnection();
-
-                                PreparedStatement ps = connection.prepareStatement(sql);
-                                ps.setInt(1,ra.getId());
-
-
-                                int row  = ps.executeUpdate();
-
-                                            if (row >= 1 && TransferInformation(ra.getId())){
-                                                isActivated = true;
-
-                                            }else {
-                                                isActivated = false;
-                                            }
-
-
-
-                            } catch (SQLException e) {
-                                isActivated = false;
-                                e.printStackTrace();
-                            }finally {
-                                try {
-                                    connection.close();
-                                } catch (SQLException e) {
-                                    e.printStackTrace();
-                                }
-
-                            }
-                }
-
-        return isActivated;
-    }
-
-    @Override
-    public boolean Reject(RequestAccounts ra) {
-        Connection connection = null;
-        boolean isRejected = false;
-        String sql = "Update account set requeststatus = 'Rejected' where id = ?";
-
-            synchronized (RejectLock){
-                try {
-                    connection = connectionPool.getConnection();
-
-                    PreparedStatement  ps = connection.prepareStatement(sql);
-                    ps.setInt(1,ra.getId());
-
-                    int row = ps.executeUpdate();
-
-                            if (row >= 1){
-                                isRejected = true;
-                            }else {
-                                isRejected = false;
-                            }
-
-                } catch (SQLException e) {
-                    isRejected = false;
-                    e.printStackTrace();
-                }
-
-
-            }
-
-
-        return isRejected;
-    }
-
-    // transger personal informations after approveing account
-    private boolean  TransferInformation(int accountID ){
-        Connection connection = null;
-
-        String getClientInfo = "Select * from request where accountid = ?";
-        String sqlTransfer = "Insert into client (Name, Address, contact, Gender, AccountID, SecretInfoID) VALUES (?,?,?,?,?,?)";
-        try {
-            connection = connectionPool.getConnection();
-            PreparedStatement ps = connection.prepareStatement(getClientInfo);
-            ps.setInt(1, accountID);
-
-            ResultSet rs = ps.executeQuery();
-
-            rs.next();
-            String name = rs.getString("name");
-            String address = rs.getString("address");
-            String contact = rs.getString("contact");
-            String gender = rs.getString("gender");
-            int secretinfoID = rs.getInt("secretinfoid");
-
-            PreparedStatement transferPS = connection.prepareStatement(sqlTransfer);
-            transferPS.setString(1,name);
-            transferPS.setString(2,address);
-            transferPS.setString(3,contact);
-            transferPS.setString(4,gender);
-            transferPS.setInt(5, accountID);
-            transferPS.setInt(6, secretinfoID);
-
-            transferPS.executeUpdate();
-
-            connection.close();
-
-            return true;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
-
-
-    }
-
     //METHODS THAT ARE NEED TO BE SYNCRONIZED
 
     @Override
@@ -572,7 +421,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         StaffInfo staffInfo = new StaffInfo(false,0,null,null,null,null,null,null,null,0);
         synchronized (lock3){
             String loginSql = "SELECT id, User, password, status, role from account where User = ? and password = ?" +
-                    "and RequestStatus = 'Approved'";
+                    "and RequestStatus = 'APPROVED'";
             String updateStatus = "UPDATE account SET status = ? WHERE User = ? and password = ?";
 
             try {

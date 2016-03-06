@@ -1,10 +1,11 @@
 package MainApp.AdminServer;
 
+import AdminModel.Enum.AccountApproveStatus;
+import AdminModel.Enum.AccountStatus;
 import AdminModel.Enum.FactorCategoryParameter;
 import AdminModel.Enum.ReportCategoryMethod;
 import AdminModel.Params;
 import AdminModel.Report.Children.Model.ResponsePovertyFactor;
-import AdminModel.Report.Children.Model.ResponsePovertyRate;
 import AdminModel.Report.Parent.ResponseCompareOverview;
 import AdminModel.Report.Parent.ResponseSpecific;
 import AdminModel.Report.Parent.ResponseSpecificOverView;
@@ -13,6 +14,7 @@ import AdminModel.ResponseModel.ActiveAccounts;
 import BarangayData.BarangayData;
 import DecisionSupport.Prioritizer;
 import MainApp.DataBase.Database;
+import MainApp.Preferences.Preference;
 import PriorityModels.PriorityLevel;
 import PriorityModels.PriorityType;
 import RMI.AdminInterface;
@@ -21,9 +23,9 @@ import Remote.Method.FamilyModel.Family;
 import Remote.Method.FamilyModel.FamilyInfo;
 import Remote.Method.FamilyModel.FamilyPoverty;
 import org.h2.jdbcx.JdbcConnectionPool;
-import utility.Logger;
 import utility.Utility;
 
+import java.io.File;
 import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -335,11 +337,12 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
     @Override
     public ArrayList getActiveAccounts( ) throws RemoteException {
+        Connection connection = null;
         ArrayList list = new ArrayList();
         String sql = "\n" +
-                "SELECT A.id, user, C.name FROM account A \n" +
+                "SELECT A.id, user, C.name, A.requeststatus, A.status FROM account A \n" +
                 "LEFT JOIN client C ON C.accountid = A.id\n" +
-                "WHERE A.requeststatus = 'Approved' and A.role = 'Client'";
+                "WHERE (A.requeststatus = 'APPROVED' or A.requeststatus = 'DISABLE'  or A.requeststatus = 'REJECTED') and A.role = 'Client'";
 
             synchronized (activeAccount){
 
@@ -353,8 +356,10 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                                 int id = rs.getInt("id");
                                 String name = rs.getString("Name");
                                 String username = rs.getString("user");
+                                String aCstatus = rs.getString("requeststatus");
+                                String status = rs.getString("status");
 
-                                list.add(new ActiveAccounts(id,username, name));
+                                list.add(new ActiveAccounts(id,username, name, aCstatus, status));
 
                             }
 
@@ -386,12 +391,24 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
             }
         }
 
-        @Override
-        public void shutDownServer() throws RemoteException {
-            System.exit(0);
-            }
+    @Override
+    public File getBackUp() throws RemoteException {
+        String path = Preference.getDBpath();
+        File file = new File(path + "copy");
+        return file;
+    }
 
-        private boolean isFactorType(String xValue ){
+    @Override
+    public boolean updateAccountStatus(int id, AccountStatus status) throws RemoteException {
+        return  AccountDB.updateAccountStatusByID(id, status);
+    }
+
+    @Override
+    public boolean approveAccount(int id, AccountApproveStatus status) throws RemoteException {
+        return AccountDB.approveAccount(id, status);
+    }
+
+    private boolean isFactorType(String xValue ){
             boolean isFactortType = false;
             for(FactorCategoryParameter c : FactorCategoryParameter.values()){
                 if (c.toString().equals(xValue)){
