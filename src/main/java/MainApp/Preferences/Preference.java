@@ -10,16 +10,30 @@ import java.util.prefs.Preferences;
  */
 public class Preference {
 
-    private static String KEYPATH = "DBPATH";
+    private static String DrctoryKeyPath = "directoryDBPath";
+    private static String DrctoryPath = "";
+
+
+
+    private static String DBPath = "DBPATH";
     private static String dbPath = "";
 
     static  Preferences preferences = Utility.createPreference();
 
-    public static String getDBpath(){
-        return preferences.get(KEYPATH, dbPath);
+    public static String getDirectoryDBpath(){
+        return preferences.get(DrctoryKeyPath, DrctoryPath);
     }
 
-    public static void  setDBpath(String path){
-        preferences.put(KEYPATH, path );
+    public static void  setDirectoryDBpath(String path){
+        preferences.put(DrctoryKeyPath, path );
     }
+
+    public static void  setDbPath(String path){
+        preferences.put(DBPath, path );
+    }
+    public static String  getDBPath(){
+      return   preferences.get(DBPath, dbPath );
+    }
+
+
 }

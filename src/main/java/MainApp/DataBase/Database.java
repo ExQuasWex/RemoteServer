@@ -14,12 +14,14 @@ import java.io.IOException;
  * Created by Didoy on 2/25/2016.
  */
 public class Database {
+    private static String DBprefix = "jdbc:h2:file:";
+    private static String DBsuffix = "/pdsss/database/pdss;Mode=MySQL;MVCC=TRUE";
 
-    private static final String host = "jdbc:h2:file:~/UrbanPoor/pdsss/database/pdss;Mode=MySQL;MVCC=TRUE";
+    private static  String host = "";
     private static final String user = "admin";
     private static final String pass = "admin";
 
-    private static JdbcConnectionPool connectionPool  = JdbcConnectionPool.create(host, user, pass);
+    private static JdbcConnectionPool connectionPool;
 
     public static JdbcConnectionPool getConnectionPool (){
         return connectionPool;
@@ -53,20 +55,35 @@ public class Database {
     public static boolean SynchDB(){
         boolean isSave = false;
 
-        String path = Preference.getDBpath();
+        String path = Preference.getDirectoryDBpath();
+
             if (path.equals("")){
                 path = MessageBox.showImportDatabaseDialog();
-                Preference.setDBpath(path);
+                Preference.setDirectoryDBpath(path);
+
+                final String  AbsoluteDBPath = DBprefix + path + DBsuffix;
+                System.out.println(AbsoluteDBPath);
+                Preference.setDbPath(AbsoluteDBPath);
+                host = AbsoluteDBPath;
+                connectionPool  = JdbcConnectionPool.create(host, user, pass);
+                isSave =true;
             }
             else {
                 File source = new File(path);
                         if (!source.exists()){
                             Utility.showMessageBox("Database is no longer existing in the file path", Alert.AlertType.ERROR);
-                            Preference.setDBpath("");
+                            Preference.setDirectoryDBpath("");
+                            Preference.setDbPath("");
                             SynchDB();
                         }else {
                             File dstination = new File(path + "copy");
                             CreateCopyOfDB(source, dstination);
+
+                            path = Preference.getDBPath();
+                            System.out.println(path);
+                            host = path;
+                            connectionPool  = JdbcConnectionPool.create(host, user, pass);
+                            isSave = true;
                         }
             }
 

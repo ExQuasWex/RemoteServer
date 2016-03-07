@@ -33,14 +33,17 @@ public class Server extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
 
-        SynchDatabase();
-        StartServer();
-        addServerToTrayIcon();
+     if ( SynchDatabase()) {
+         StartServer();
+         addServerToTrayIcon();
+     }else {
+         Utility.showConfirmationMessage("Cant Start Sever", Alert.AlertType.ERROR);
+     }
     }
 
 
-    private  static void SynchDatabase(){
-        Database.SynchDB();
+    private  static boolean SynchDatabase(){
+        return Database.SynchDB();
     }
     public static void StartServer(){
         try {

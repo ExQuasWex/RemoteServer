@@ -407,7 +407,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
                              staffInfo = getUserInformation(connection);
 
-
                     // record did not match
                     }else{
                     }

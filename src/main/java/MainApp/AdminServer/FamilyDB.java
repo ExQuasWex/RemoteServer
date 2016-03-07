@@ -194,6 +194,51 @@ public class FamilyDB {
         return familyID;
     }
 
+    public static int countResolveofBarangay(int barangayID){
+        Connection connection = null;
+        int population = 0;
+        String sql = "select count(DISTINCT id)as id  from family where status = 'Resolve' And barangayid  = ?";
+
+        try {
+            connection = connectionPool.getConnection();
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setInt(1, barangayID);
+
+            ResultSet rs = ps.executeQuery();
+            rs.next();
+            population = rs.getInt("id");
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            Utility.closeConnection(connection);
+        }
+        return population;
+    }
+
+    public static int countAllUnresolveFromBarangay(int barangayID){
+        Connection connection = null;
+        int population = 0;
+        String sql = "select count(DISTINCT id)as id  from family where status = 'Unresolve' And barangayid  = ?";
+
+        try {
+            connection = connectionPool.getConnection();
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setInt(1, barangayID);
+
+            ResultSet rs = ps.executeQuery();
+            rs.next();
+            population = rs.getInt("id");
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            Utility.closeConnection(connection);
+        }
+        return population;
+    }
+
+
 
 
 }

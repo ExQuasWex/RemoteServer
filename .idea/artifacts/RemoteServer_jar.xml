@@ -7,6 +7,9 @@
       </element>
       <element id="module-output" name="RemoteServer" />
       <element id="module-output" name="RemoteMethod" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/commons-io/commons-io/1.3.2/commons-io-1.3.2.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/commons-logging/commons-logging/1.1.3/commons-logging-1.1.3.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/healthmarketscience/rmiio/rmiio/2.1.0/rmiio-2.1.0.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/h2database/h2/1.4.187/h2-1.4.187.jar" path-in-jar="/" />
     </root>
   </artifact>
