@@ -1,14 +1,13 @@
 package MainApp.AdminServer;
 
 import MainApp.DataBase.Database;
+import Remote.Method.FamilyModel.Family;
 import Remote.Method.FamilyModel.FamilyInfo;
 import org.h2.jdbcx.JdbcConnectionPool;
 import utility.Utility;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.rmi.RemoteException;
+import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 
@@ -96,5 +95,105 @@ public class FamilyDB {
 
        return idList;
     }
+
+    public static void updateFamily(FamilyInfo familyInfo, int barangayiD, Connection connection){
+
+        String sql = "Update family SET " +
+                "barangayid = ?," +
+                "date = ?," +
+                "name = ?," +
+                "maritalstatus = ?," +
+                "age = ?," +
+                "spouse = ?," +
+                "address = ?," +
+                "childrenno = ?," +
+                "gender = ?," +
+                "yrresidency = ?," +
+                "yrissued = ?," +
+                "clientid = ?" +
+                "where  id = ?";
+
+        try {
+            int numofChildren = familyInfo.getNumofChildren();
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+
+            ps.setInt(1,    barangayiD);
+            ps.setString(2, familyInfo.getInputDate());
+            ps.setString(3, familyInfo.getName());
+            ps.setString(4, familyInfo.getMaritalStatus());
+            ps.setString(5, familyInfo.getAge());
+            ps.setString(6, familyInfo.getSpouseName());
+            ps.setString(7, familyInfo.getAddress());
+            ps.setInt(8,    numofChildren);
+            ps.setString(9, familyInfo.getGender());
+            ps.setInt(10,   familyInfo.getResidencyYr());
+            ps.setString(11,familyInfo.getSurveyedYr().toString());
+            ps.setInt(12, familyInfo.getClientID());
+            ps.setInt(13,   familyInfo.familyId());
+
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public static void updateClientIpAddress(String ipaddress, int accountID, Connection connection){
+
+        String sql = "Update generatedport set ipaddress = ?where accountid = ?";
+
+        try {
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, ipaddress);
+            ps.setInt(2, accountID);
+
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static int  addFamily(FamilyInfo familyInfo, int barangayID, Connection connection){
+        int familyID = 0;
+
+        String addFamilySql = "Insert INTO family (barangayid,date,name,maritalstatus,age,spouse," +
+                "address,childrenno,gender,yrresidency,yrissued,clientid)" +
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+        try {
+            int numofChildren = familyInfo.getNumofChildren();
+            PreparedStatement ps = connection.prepareStatement(addFamilySql, Statement.RETURN_GENERATED_KEYS);
+            ps.setInt(1, barangayID);
+            ps.setString(2,familyInfo.getInputDate());
+            ps.setString(3,familyInfo.getName());
+            ps.setString(4,familyInfo.getMaritalStatus());
+            ps.setString(5,familyInfo.getAge());
+            ps.setString(6,familyInfo.getSpouseName());
+            ps.setString(7,familyInfo.getAddress());
+            ps.setInt(8,numofChildren);
+            ps.setString(9,familyInfo.getGender());
+            ps.setInt(10, familyInfo.getResidencyYr());
+            ps.setString(11,familyInfo.getSurveyedYr().toString());
+            ps.setInt(12,familyInfo.getClientID());
+
+            int row = ps.executeUpdate();
+            ResultSet rs = ps.getGeneratedKeys();
+
+            rs.next();
+            if (row == 1 ){
+                familyID = rs.getInt(1);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return familyID;
+    }
+
+
 
 }

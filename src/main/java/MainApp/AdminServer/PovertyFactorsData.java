@@ -39,7 +39,7 @@ public class PovertyFactorsData {
                 "      END) as unemployed,\n" +
                 "\n" +
                 "  sum( CASE\n" +
-                "       WHEN underemployed = 'Yes' THEN 1\n" +
+                "       WHEN Underemployed = 'Yes' THEN 1\n" +
                 "       ELSE 0\n" +
                 "       END)as Underemployed,\n" +
                 "  sum( CASE\n" +
@@ -47,11 +47,11 @@ public class PovertyFactorsData {
                 "       ELSE 0\n" +
                 "       END)as NoExtra,\n" +
                 "  sum( CASE\n" +
-                "       WHEN threshold = 'No' THEN +1\n" +
+                "       WHEN threshold = 'Yes' THEN +1\n" +
                 "       ELSE 0\n" +
                 "       END)as BelowMinimum,\n" +
                 "  sum( CASE\n" +
-                "       WHEN (ownership = 'Rental' or ownership = 'Shared' or ownership = 'Informal Settler') THEN +1\n" +
+                "       WHEN (ownership = 'Rental' or ownership = 'Sharer' or ownership = 'Informal Settler') THEN +1\n" +
                 "       ELSE 0\n" +
                 "       END)as NoShelter\n" +
                 "from povertyfactors where year like ?";
@@ -65,7 +65,7 @@ public class PovertyFactorsData {
                 "      ELSE 0\n" +
                 "      END) as unemployed,\n" +
                 "  sum( CASE\n" +
-                "       WHEN underemployed = 'Yes'THEN 1\n" +
+                "       WHEN Underemployed = 'Yes' THEN 1\n" +
                 "       ELSE 0\n" +
                 "       END)as Underemployed,\n" +
                 "  sum( CASE\n" +
@@ -73,11 +73,11 @@ public class PovertyFactorsData {
                 "       ELSE 0\n" +
                 "       END)as NoExtra,\n" +
                 "  sum( CASE\n" +
-                "       WHEN threshold = 'No' THEN +1\n" +
+                "       WHEN threshold = 'Yes' THEN +1\n" +
                 "       ELSE 0\n" +
                 "       END)as BelowMinimum,\n" +
                 "  sum( CASE\n" +
-                "       WHEN (ownership = 'Rental' or ownership = 'Shared' or ownership = 'Informal Settler') THEN +1\n" +
+                "       WHEN (ownership = 'Rental' or ownership = 'Sharer' or ownership = 'Informal Settler') THEN +1\n" +
                 "       ELSE 0\n" +
                 "       END)as NoShelter\n" +
                 "\n" +
@@ -95,7 +95,7 @@ public class PovertyFactorsData {
                 "      ELSE 0\n" +
                 "      END) as unemployed,\n" +
                 "  sum( CASE\n" +
-                "       WHEN underemployed = 'Yes' THEN 1\n" +
+                "       WHEN Underemployed = 'Yes' THEN 1\n" +
                 "       ELSE 0\n" +
                 "       END)as Underemployed,\n" +
                 "  sum( CASE\n" +
@@ -103,11 +103,11 @@ public class PovertyFactorsData {
                 "       ELSE 0\n" +
                 "       END ) as NoExtra,\n" +
                 "  sum( CASE\n" +
-                "       WHEN threshold = 'No' THEN +1\n" +
+                "       WHEN threshold = 'Yes' THEN +1\n" +
                 "       ELSE 0\n" +
                 "       END)as BelowMinimum,\n" +
                 "  sum( CASE\n" +
-                "       WHEN (ownership = 'Rental' or ownership = 'Shared' or ownership = 'Informal Settler') THEN +1\n" +
+                "       WHEN (ownership = 'Rental' or ownership = 'Sharer' or ownership = 'Informal Settler') THEN +1\n" +
                 "       ELSE 0\n" +
                 "       END)as NoShelter\n" +
                 "from povertyfactors P\n" +
@@ -259,7 +259,7 @@ public class PovertyFactorsData {
                 date = Utility.DateToMonth(date);
                 String month = Utility.rebirtDigitalMonth(date);
 
-                Logger.Log(date);
+                System.out.println(NoShelter);
 
                 povertyFactors  =
                         new ResponsePovertyFactor(unemployed, underEmployed, noextra, BelowMinimum, NoShelter, month );

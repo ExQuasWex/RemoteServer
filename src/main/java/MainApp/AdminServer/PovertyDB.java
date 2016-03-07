@@ -78,4 +78,84 @@ public class PovertyDB {
 
         return  familyPoverty;
     }
+
+    public static void updateFamilyPoverty(FamilyPoverty familyPoverty, int familyID, Connection connection){
+
+        String povertySql = "Update povertyfactors SET " +
+                "year = ?," +
+                "month = ?," +
+                "occupancy = ?," +
+                "schoolchildren = ?," +
+                "underemployed = ?," +
+                "otherincome = ?," +
+                "threshold = ?," +
+                "ownership = ?" +
+                "WHERE familyid = ?";
+
+        try {
+
+            String childrenInSchool = "";
+            if (familyPoverty.getChildreninSchool() != null) {
+                childrenInSchool = familyPoverty.getChildreninSchool().toString();
+            }
+
+            PreparedStatement  ps = connection.prepareStatement(povertySql);
+
+            ps.setString(1, familyPoverty.getYear().toString());
+            ps.setInt   (2,    familyPoverty.getMonth());
+            ps.setString(3, familyPoverty.getOccupancy());
+            ps.setString(4, childrenInSchool);
+            ps.setString(5, familyPoverty.getIsunderEmployed());
+            ps.setString(6, familyPoverty.getHasotherIncome());
+            ps.setString(7, familyPoverty.getIsbelow8k());
+            ps.setString(8, familyPoverty.getOwnership());
+            ps.setInt   (9,    familyID);
+
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public static boolean addPovertyFactors(FamilyPoverty familyPoverty, int familyId, Connection connection){
+        boolean isAdded = false;
+
+        String addPovertySql = "Insert Into povertyfactors (Familyid, year, month, occupancy,schoolchildren," +
+                "underemployed,otherincome,threshold,ownership) " +
+                "Values (?,?,?,?,?,?,?,?,?)";
+
+        //
+        try {
+            String childrenInSchool = "";
+            if (familyPoverty.getChildreninSchool() != null) {
+                childrenInSchool = familyPoverty.getChildreninSchool().toString();
+            }
+
+            PreparedStatement ps = connection.prepareStatement(addPovertySql);
+            ps.setInt(1, familyId);
+            ps.setString(2, familyPoverty.getYear().toString());
+            ps.setInt(3, familyPoverty.getMonth());
+            ps.setString(4, familyPoverty.getOccupancy());
+            ps.setString(5, childrenInSchool);
+            ps.setString(6, familyPoverty.getIsunderEmployed());
+            ps.setString(7, familyPoverty.getHasotherIncome());
+            ps.setString(8, familyPoverty.getIsbelow8k());
+            ps.setString(9, familyPoverty.getOwnership());
+
+            int row = ps.executeUpdate();
+            if (row == 1) {
+                isAdded = true;
+                System.out.println("sucessfully added Family");
+            }
+
+        } catch (SQLException e) {
+            isAdded = false;
+            e.printStackTrace();
+        }
+        return isAdded;
+    }
+
+
 }

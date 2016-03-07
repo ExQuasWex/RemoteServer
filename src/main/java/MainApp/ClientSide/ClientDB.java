@@ -1,11 +1,8 @@
 package MainApp.ClientSide;
 
 import AdminModel.RequestAccounts;
+import MainApp.AdminServer.*;
 import Remote.Method.FamilyModel.FamilyHistory;
-import MainApp.AdminServer.BarangayDB;
-import MainApp.AdminServer.FamilyDB;
-import MainApp.AdminServer.HistoryDB;
-import MainApp.AdminServer.PovertyDB;
 import MainApp.ClientIntefaceFactory;
 import MainApp.DataBase.Database;
 import RMI.ClientInterface;
@@ -350,62 +347,16 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     // total numbers of pending accounts
     @Override
     public int getPendingAccounts() throws RemoteException {
-        Connection connection = null;
-
-        int numberOfPending = 0;
-        String sql = "Select count(id) from request rq where accountid in  " +
-                "(select id from account where RequestStatus = 'Pending')";
                 synchronized (pendingAccountLock){
-
-                    try {
-                        connection = connectionPool.getConnection();
-
-                        PreparedStatement ps = connection.prepareStatement(sql);
-                        ResultSet rs = ps.executeQuery();
-                        rs.next();
-                        numberOfPending = rs.getInt(1);
-
-                        connection.close();
-
-                    }catch (SQLException e) {
-                        e.printStackTrace();
-                    }
-
+                    return AccountDB.getPendingAccounts();
                 }
-
-        return numberOfPending;
     }
 
     @Override
     public ArrayList getRequestAccounts() throws RemoteException {
-
-        Connection connection = null;
-
-        ArrayList<RequestAccounts> requestList = new ArrayList();
-            String sql = "SELECT  name, accountid  FROM request RE\n" +
-                    "LEFT JOIN account A ON RE.accountid = A.id\n" +
-                    "WHERE A.requestStatus = 'Pending'\n";
-
-
             synchronized (requestAccountLock){
-                    try {
-                        connection = connectionPool.getConnection();
-                        PreparedStatement ps = connection.prepareStatement(sql);
-                        ResultSet rs = ps.executeQuery();
-
-                        while (rs.next()){
-                            RequestAccounts ra = new RequestAccounts(rs.getString("Name"), rs.getInt("accountid"));
-                            requestList.add(ra);
-                        }
-
-                        connection.close();
-
-                    } catch (SQLException e) {
-                        e.printStackTrace();
-                    }
+                return AccountDB.getRequestAccounts();
             }
-
-        return requestList;
     }
 
     //METHODS THAT ARE NEED TO BE SYNCRONIZED
@@ -786,121 +737,15 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
 
     private boolean addToBarangay(Family family, Connection connection){
-    boolean isSave = false;
-    int familyID = 0;
-
-        String updateBarangay = "Update barangay  SET Unresolvepopulation = Unresolvepopulation + 1 where id = ?";
-
-        int barangayID = 0;
-
-            try {
-                Logger.Log("addToBarangay");
-
-                String barangayName = family.getFamilyinfo().getBarangay();
-                LocalDate date =  family.getFamilyinfo().getSurveyedYr();
-
-                // check if barangay is already existing
-                boolean existing = isBarangayExisting(barangayName, date.toString(), connection);
-
-                        if (existing){
-                            Logger.Log("barangay Existing line 979");
-
-                            barangayID = getBarangayID(barangayName, date.toString());
-
-                            //update the barangay
-                            PreparedStatement updatePs = connection.prepareStatement(updateBarangay,Statement.RETURN_GENERATED_KEYS);
-                            updatePs.setInt(1,barangayID);
-                            updatePs.executeUpdate();
-
-                        }else {
-                            // insert new  barangay record
-                            Logger.Log("createNewBarangay ");
-                            barangayID = createNewBarangay(barangayName, date);
-                        }
-
-                familyID  = addFamily(family.getFamilyinfo(),barangayID,connection);
-
-                isSave  = addPovertyFactors(family.getFamilypoverty(),familyID,connection);
-
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-    return isSave;
+        return BarangayDB.addToBarangay(family, connection);
     }
 
     private int  addFamily(FamilyInfo familyInfo, int barangayID, Connection connection){
-        int familyID = 0;
-
-        String addFamilySql = "Insert INTO family (barangayid,date,name,maritalstatus,age,spouse," +
-                "address,childrenno,gender,yrresidency,yrissued,clientid)" +
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
-        try {
-            int numofChildren = familyInfo.getNumofChildren();
-            PreparedStatement ps = connection.prepareStatement(addFamilySql, Statement.RETURN_GENERATED_KEYS);
-            ps.setInt(1, barangayID);
-            ps.setString(2,familyInfo.getInputDate());
-            ps.setString(3,familyInfo.getName());
-            ps.setString(4,familyInfo.getMaritalStatus());
-            ps.setString(5,familyInfo.getAge());
-            ps.setString(6,familyInfo.getSpouseName());
-            ps.setString(7,familyInfo.getAddress());
-            ps.setInt(8,numofChildren);
-            ps.setString(9,familyInfo.getGender());
-            ps.setInt(10, familyInfo.getResidencyYr());
-            ps.setString(11,familyInfo.getSurveyedYr().toString());
-            ps.setInt(12,familyInfo.getClientID());
-
-            int row = ps.executeUpdate();
-            ResultSet rs = ps.getGeneratedKeys();
-
-                rs.next();
-            if (row == 1 ){
-                familyID = rs.getInt(1);
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return familyID;
+        return FamilyDB.addFamily(familyInfo, barangayID, connection);
     }
 
     public boolean addPovertyFactors(FamilyPoverty familyPoverty, int familyId, Connection connection){
-        boolean isAdded = false;
-
-        String addPovertySql = "Insert Into povertyfactors (Familyid, year, month, occupancy,schoolchildren," +
-                "underemployed,otherincome,threshold,ownership) " +
-                "Values (?,?,?,?,?,?,?,?,?)";
-
-        //
-        try {
-            String childrenInSchool = "";
-            if (familyPoverty.getChildreninSchool() != null) {
-                childrenInSchool = familyPoverty.getChildreninSchool().toString();
-            }
-
-            PreparedStatement ps = connection.prepareStatement(addPovertySql);
-            ps.setInt(1, familyId);
-            ps.setString(2, familyPoverty.getYear().toString());
-            ps.setInt(3, familyPoverty.getMonth());
-            ps.setString(4, familyPoverty.getOccupancy());
-            ps.setString(5, childrenInSchool);
-            ps.setString(6, familyPoverty.getIsunderEmployed());
-            ps.setString(7, familyPoverty.getHasotherIncome());
-            ps.setString(8, familyPoverty.getIsbelow8k());
-            ps.setString(9, familyPoverty.getOwnership());
-
-            int row = ps.executeUpdate();
-            if (row == 1) {
-                isAdded = true;
-                System.out.println("sucessfully added Family");
-            }
-
-        } catch (SQLException e) {
-            isAdded = false;
-            e.printStackTrace();
-        }
-        return isAdded;
+        return PovertyDB.addPovertyFactors(familyPoverty, familyId, connection);
     }
 
     /*
@@ -926,28 +771,9 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 }
 
     }
+
     private String getUsername(int accountID)  {
-        String username = "";
-
-            String usernameSQL = "SELECT User FROM account WHERE id = ?";
-
-            try {
-              Connection  connection = connectionPool.getConnection();
-                PreparedStatement ps = connection.prepareStatement(usernameSQL);
-                ps.setInt(1,accountID);
-
-                ResultSet rs = ps.executeQuery();
-
-                if (rs.next()){
-                    username = rs.getString("user");
-                }
-                ps.close();
-                connection.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-
-        return username;
+        return AccountDB.getUsername(accountID);
     }
 
     @Override
@@ -1003,7 +829,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 remotePort = rs.getInt("remoteport");
                 remoteID = rs.getString("remoteid");
 
-                updateClientIpAddress(ipAddress, accountID, connection);
+                FamilyDB.updateClientIpAddress(ipAddress, accountID, connection);
             }else {
                 remotePort = generatePort();
                 remoteID = generateRemoteID();
@@ -1026,23 +852,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         }
 
         return credentials;
-    }
-
-    private void updateClientIpAddress(String ipaddress, int accountID, Connection connection){
-
-        String sql = "Update generatedport set ipaddress = ?where accountid = ?";
-
-        try {
-
-            PreparedStatement ps = connection.prepareStatement(sql);
-            ps.setString(1, ipaddress);
-            ps.setInt(2, accountID);
-
-            ps.executeUpdate();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
     }
 
     private void setCredentialStatus(String status, int Accountid, Connection connection){
@@ -1172,7 +981,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                             updateFamilyPoverty(family.getFamilypoverty(), family.getFamilyinfo().familyId(), connection);
 
                     if (oldBarangayID != newBarangayID){
-                        updateBarangay(oldBarangayID, newBarangayID, date ,connection);
+                        updateFamilyBarangay(oldBarangayID, newBarangayID, date, connection);
                     }
 
                     isEdited = true;
@@ -1250,230 +1059,34 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
     }
 
     private void updateFamily(FamilyInfo familyInfo, int barangayiD, Connection connection){
-
-        String sql = "Update family SET " +
-                "barangayid = ?," +
-                "date = ?," +
-                "name = ?," +
-                "maritalstatus = ?," +
-                "age = ?," +
-                "spouse = ?," +
-                "address = ?," +
-                "childrenno = ?," +
-                "gender = ?," +
-                "yrresidency = ?," +
-                "yrissued = ?," +
-                "clientid = ?" +
-                "where  id = ?";
-
-        try {
-            int numofChildren = familyInfo.getNumofChildren();
-
-            PreparedStatement ps = connection.prepareStatement(sql);
-
-            ps.setInt(1,    barangayiD);
-            ps.setString(2, familyInfo.getInputDate());
-            ps.setString(3, familyInfo.getName());
-            ps.setString(4, familyInfo.getMaritalStatus());
-            ps.setString(5, familyInfo.getAge());
-            ps.setString(6, familyInfo.getSpouseName());
-            ps.setString(7, familyInfo.getAddress());
-            ps.setInt(8,    numofChildren);
-            ps.setString(9, familyInfo.getGender());
-            ps.setInt(10,   familyInfo.getResidencyYr());
-            ps.setString(11,familyInfo.getSurveyedYr().toString());
-            ps.setInt(12, familyInfo.getClientID());
-            ps.setInt(13,   familyInfo.familyId());
-
-            ps.executeUpdate();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
+        FamilyDB.updateFamily(familyInfo, barangayiD, connection);
     }
 
     private void updateFamilyPoverty(FamilyPoverty familyPoverty, int familyID, Connection connection){
-
-        String povertySql = "Update povertyfactors SET " +
-                "year = ?," +
-                "month = ?," +
-                "occupancy = ?," +
-                "schoolchildren = ?," +
-                "underemployed = ?," +
-                "otherincome = ?," +
-                "threshold = ?," +
-                "ownership = ?" +
-                "WHERE familyid = ?";
-
-        try {
-
-            String childrenInSchool = "";
-            if (familyPoverty.getChildreninSchool() != null) {
-                childrenInSchool = familyPoverty.getChildreninSchool().toString();
-            }
-
-            PreparedStatement  ps = connection.prepareStatement(povertySql);
-
-            ps.setString(1, familyPoverty.getYear().toString());
-            ps.setInt   (2,    familyPoverty.getMonth());
-            ps.setString(3, familyPoverty.getOccupancy());
-            ps.setString(4, childrenInSchool);
-            ps.setString(5, familyPoverty.getIsunderEmployed());
-            ps.setString(6, familyPoverty.getHasotherIncome());
-            ps.setString(7, familyPoverty.getIsbelow8k());
-            ps.setString(8, familyPoverty.getOwnership());
-            ps.setInt   (9,    familyID);
-
-            ps.executeUpdate();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
+        PovertyDB.updateFamilyPoverty(familyPoverty, familyID, connection);
     }
 
-    private void updateBarangay(int oldBarangayID, int newBarangayID, LocalDate date, Connection connection){
-
-        String sql = "Update barangay  set unresolvepopulation   = Unresolvepopulation -1 where id = ?";
-        String sql2 = "Update barangay set unresolvepopulation   = Unresolvepopulation +1, date = ?, month = ? where id = ?";
-
-        try {
-            PreparedStatement ps = connection.prepareStatement(sql);
-            ps.setInt(1, oldBarangayID);
-            ps.executeUpdate();
-
-            ps.clearParameters();
-
-            ps = connection.prepareStatement(sql2);
-            ps.setString(1, date.toString());
-            ps.setInt(2, Utility.convertStringMonth(date.getMonth().toString()));
-            ps.setInt(3, newBarangayID);
-
-            ps.executeUpdate();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
+    private void updateFamilyBarangay(int oldBarangayID, int newBarangayID, LocalDate date, Connection connection){
+        BarangayDB.updateFamilyBarangay(oldBarangayID, newBarangayID, date, connection);
     }
-
-
-
 
     private int getBarangayID(int familyID){
-        Connection connection = null;
-        int barangayID = 0;
-        String sql = "Select barangayid from family where id = ?";
 
         synchronized (barangaIdLock){
-                try {
-                    connection = connectionPool.getConnection();
-
-                    PreparedStatement ps = connection.prepareStatement(sql);
-                    ps.setInt(1, familyID);
-
-                    ResultSet rs = ps.executeQuery();
-
-                    rs.next();
-
-                    barangayID = rs.getInt("barangayid");
-
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }finally {
-                    Utility.closeConnection(connection);
-                }
+            return BarangayDB.getBarangayID(familyID);
         }
-
-        return barangayID;
     }
+
     private int getBarangayID(String barangayName, String date){
-        Connection connection = null;
-        int barangayID = 0;
-        String sql = "Select id from barangay where name = ? and date like ?";
-
-        synchronized (barangaIdLock){
-            try {
-                date = Utility.subStringDate(date);
-
-                        connection = connectionPool.getConnection();
-
-                PreparedStatement ps = connection.prepareStatement(sql);
-                ps.setString(1, barangayName);
-                ps.setString(2, date + "%");
-
-                ResultSet rs = ps.executeQuery();
-
-                rs.next();
-
-                barangayID = rs.getInt("id");
-
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }finally {
-                Utility.closeConnection(connection);
-            }
-        }
-
-        return barangayID;
+            return BarangayDB.getBarangayID(barangayName, date);
     }
 
     private boolean isBarangayExisting(String barangayName, String date, Connection connection){
-        boolean exist = false;
-
-        String chckBarangay = "Select id from barangay where name = ? and date like  ?";
-
-        try {
-            date = Utility.subStringDate(date);
-
-            PreparedStatement chckPs = connection.prepareStatement(chckBarangay,Statement.RETURN_GENERATED_KEYS);
-            chckPs.setString(1, barangayName);
-            chckPs.setString(2, date + "%");
-
-            ResultSet rs = chckPs.executeQuery();
-
-            if (rs.next()){
-                exist = true;
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return exist;
+        return BarangayDB.isBarangayExisting(barangayName, date, connection);
     }
 
     private int createNewBarangay(String barangayName, LocalDate date){
-        int barangayID = 0;
-        Connection connection = null;
-
-        String insertbarangay = "Insert INTO barangay (name,date,month,unresolvepopulation,resolvepopulation) VALUES " +
-                "(?,?,?,?,?)";
-
-        try {
-            connection = connectionPool.getConnection();
-
-            PreparedStatement barangayPS = connection.prepareStatement(insertbarangay, Statement.RETURN_GENERATED_KEYS);
-            barangayPS.setString(1, barangayName );
-            barangayPS.setString(2, date.toString());
-            barangayPS.setInt(3, Utility.convertStringMonth(date.getMonth().toString()));
-            barangayPS.setInt(4,1);
-            barangayPS.setInt(5,0);
-
-            int row = barangayPS.executeUpdate();
-            ResultSet barangayRs = barangayPS.getGeneratedKeys();
-
-            if (row == 1 && barangayRs.next()) {
-                barangayID = barangayRs.getInt(1);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }finally {
-            Utility.closeConnection(connection);
-        }
-
-        return barangayID;
+        return BarangayDB.createNewBarangay(barangayName, date);
     }
 
 

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="DataSourceManagerImpl" format="xml" hash="2766729704">
+  <component name="DataSourceManagerImpl" format="xml" hash="3259640605">
     <data-source source="LOCAL" name="pdss" uuid="1cfd4ba5-efcf-427c-b399-0e2b17fdb549">
       <driver-ref>h2.embedded</driver-ref>
       <synchronize>true</synchronize>

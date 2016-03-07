@@ -2,15 +2,18 @@ package MainApp.AdminServer;
 
 import AdminModel.Enum.AccountApproveStatus;
 import AdminModel.Enum.AccountStatus;
+import AdminModel.RequestAccounts;
 import AdminModel.ResponseModel.ActiveAccounts;
 import MainApp.DataBase.Database;
 import org.h2.jdbcx.JdbcConnectionPool;
 import utility.Utility;
 
+import java.rmi.RemoteException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 
 /**
  * Created by reiner on 3/3/2016.
@@ -152,9 +155,6 @@ public class AccountDB {
         return isUpdated;
     }
 
-
-
-
     // transger personal informations after approveing account
     private static boolean  TransferInformation(int accountID) {
         Connection connection = null;
@@ -194,6 +194,87 @@ public class AccountDB {
         }
 
     }
+
+    public static  String getUsername(int accountID)  {
+        String username = "";
+
+        String usernameSQL = "SELECT User FROM account WHERE id = ?";
+
+        try {
+            Connection  connection = connectionPool.getConnection();
+            PreparedStatement ps = connection.prepareStatement(usernameSQL);
+            ps.setInt(1,accountID);
+
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()){
+                username = rs.getString("user");
+            }
+            ps.close();
+            connection.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return username;
+    }
+
+    public static int getPendingAccounts() throws RemoteException {
+        Connection connection = null;
+
+        int numberOfPending = 0;
+        String sql = "Select count(id) from request rq where accountid in  " +
+                "(select id from account where RequestStatus = 'Pending')";
+
+            try {
+                connection = connectionPool.getConnection();
+
+                PreparedStatement ps = connection.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery();
+                rs.next();
+                numberOfPending = rs.getInt(1);
+
+                connection.close();
+
+            }catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+        return numberOfPending;
+    }
+
+    public static ArrayList getRequestAccounts() throws RemoteException {
+
+        Connection connection = null;
+
+        ArrayList<RequestAccounts> requestList = new ArrayList();
+        String sql = "SELECT  name, accountid  FROM request RE\n" +
+                "LEFT JOIN account A ON RE.accountid = A.id\n" +
+                "WHERE A.requestStatus = 'Pending'\n";
+
+            try {
+                connection = connectionPool.getConnection();
+                PreparedStatement ps = connection.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery();
+
+                while (rs.next()){
+                    RequestAccounts ra = new RequestAccounts(rs.getString("Name"), rs.getInt("accountid"));
+                    requestList.add(ra);
+                }
+
+                connection.close();
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+        return requestList;
+    }
+
+
+
+
+
 
 }
 

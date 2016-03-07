@@ -377,10 +377,9 @@
       <column name="name" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
       <column name="date" sqlType="varchar" precision="50" scale="0" nullable="true" jdbcType="12"/>
       <column name="month" sqlType="varchar" precision="40" scale="0" nullable="true" jdbcType="12"/>
-      <column name="unresolvepopulation" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
-      <column name="resolvepopulation" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
+      <column name="population" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
       <primary-key name="CONSTRAINT_C" columns="id"/>
-      <index name="primary_key_d3" unique="true" columns="id"/>
+      <index name="primary_key_d" unique="true" columns="id"/>
     </table>
     <table name="client" schema="public" catalog="pdss" type="TABLE">
       <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfMkI5MzkwNTRfMkMxM180MkRGXzk2NTFfMTc3N0E0NjA2QjQyKQ==" autoIncrement="true"/>
@@ -408,8 +407,9 @@
       <column name="yrresidency" sqlType="integer" precision="10" scale="0" nullable="true" jdbcType="4"/>
       <column name="yrissued" sqlType="varchar" precision="50" scale="0" nullable="true" jdbcType="12"/>
       <column name="clientid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
+      <column name="status" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12" def="J1VucmVzb2x2ZSc="/>
       <primary-key name="CONSTRAINT_7B" columns="id"/>
-      <index name="primary_key_11" unique="true" columns="id"/>
+      <index name="primary_key_11c" unique="true" columns="id"/>
     </table>
     <table name="generatedport" schema="public" catalog="pdss" type="TABLE">
       <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfMTExQTMyMDdfNDM3Ql80NUU4X0E3M0VfNDJCQkNDQTk4MjRBKQ==" autoIncrement="true"/>

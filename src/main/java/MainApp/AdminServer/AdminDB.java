@@ -198,7 +198,7 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
         final  String date = params.getDate();
         String barangayName = params.getBarangay1();
 
-        int population = barangayData.getPovertyCompareSpecificData(date,barangayName );
+        int population = barangayData.getPovertyCompareSpecificData(date, barangayName);
          ResponsePovertyFactor povertyFactor = povertyFactorsData.getSpecificFactors(date, barangayName);
 
         ResponseSpecific responseSpecific = new ResponseSpecific(population, povertyFactor);
@@ -243,7 +243,7 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
         FamilyPoverty familyPoverty = null;
 
         String brngayName;
-        int unresolvePopulation;
+        int population;
         int resolvepopulation ;
 
         ArrayList<FamilyInfo> familyInfoArrayList= new ArrayList<FamilyInfo>();
@@ -253,8 +253,8 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
             String sql = "SELECT\n" +
                     "  name,\n" +
-                    "  sum(DISTINCT  unresolvepopulation) as unresolvepopulation ,\n" +
-                    "  sum(DISTINCT resolvepopulation) as resolvepopulation \n" +
+                    "  sum(DISTINCT  population) as population ,\n" +
+                    "  sum(DISTINCT population) as population \n" +
                     "FROM barangay\n" +
                     "\n" +
                     "WHERE date LIKE ? GROUP BY name";
@@ -271,8 +271,8 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
                         while (rs.next()){
                              brngayName = rs.getString("name");
-                             unresolvePopulation = rs.getInt("unresolvepopulation");
-                             resolvepopulation = rs.getInt("resolvepopulation");
+                            population = rs.getInt("population");
+                             resolvepopulation = rs.getInt("population");
 
                                     ArrayList<Integer> idList = FamilyDB.getFamilyIdList(year, brngayName);
 
@@ -290,7 +290,7 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                             PriorityLevel priorityLevel = Prioritizer.getBarangayPriorityLevel(familyPovertyArrayList);
                             PriorityType  priorityType   = Prioritizer.getBarangayPriorityType(familyPovertyArrayList);
 
-                            BarangayData barangayData = new BarangayData(brngayName, unresolvePopulation,
+                            BarangayData barangayData = new BarangayData(brngayName, population,
                                     resolvepopulation, priorityLevel, priorityType);
 
                             barangayDataList.add(barangayData);
@@ -446,11 +446,10 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
         if (method != null){
 
                     if (isFactortType){
-                        ps = getFatortTypePreparedStatement(connection, params, method);
+                            ps = getFatortTypePreparedStatement(connection, params, method);
 
                     }else{
-
-                        ps = getPovertyPopulationPreparedStatement(connection, params, method);
+                            ps = getPovertyPopulationPreparedStatement(connection, params, method);
                     }
         }
         else {
@@ -495,6 +494,14 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                 " AND P."+ colName +   " = ? ";
 
 
+        String specificSQL = "SELECT F.id FROM family F\n" +
+                "  LEFT JOIN povertyfactors P ON P.familyid = F.id\n" +
+                "WHERE barangayid IN\n" +
+                "      (SELECT id FROM barangay where name= ? AND date LIKE ?)" +
+                " AND (ownership = 'Rental' or ownership = 'Sharer' or ownership = 'Informal Settler')";
+
+
+
         try {
                 if (method == ReportCategoryMethod.OVERVIEW || method == ReportCategoryMethod.COMPARE_OVERVIEW ){
                     ps = connection.prepareStatement(sql2);
@@ -502,17 +509,21 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                     ps.setString(1, date + "%");
                     ps.setString(2, value);
 
-                    System.out.println("Column name: " + colName + " DBValue: " + value);
-                }else {
+                }else if (method == ReportCategoryMethod.SPECIFIC && colName.equals("ownership")){
+                    ps = connection.prepareStatement(specificSQL);
+
+                    ps.setString(1,barangayName);
+                    ps.setString(2, date + "%");
+                }
+                else {
                     ps = connection.prepareStatement(sql);
 
                     ps.setString(1,barangayName);
                     ps.setString(2, date + "%");
                     ps.setString(3, value);
 
-                    System.out.println("Column name: " + colName + " DBValue: " + value);
-
                 }
+            System.out.println("Column name: " + colName + " DBValue: " + value);
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -570,7 +581,6 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                 break;
             case "Below City Threshold": colName = "threshold";
                 break;
-
             case "UnderEmployed": colName = "underemployed";
                 break;
             case "No Home": colName = "ownership";
@@ -592,7 +602,7 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                 break;
             case "UnderEmployed": val = "Yes";
                 break;
-            case "No Home": val = "Illegal settlers";
+            case "No Home": val = "Informal Settler";
                 break;
         }
         return val;
