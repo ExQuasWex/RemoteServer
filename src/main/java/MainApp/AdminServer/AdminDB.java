@@ -470,6 +470,38 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
         return list;
     }
 
+    @Override
+    public ArrayList viewAllPeople(String barangayName, String date) throws RemoteException {
+        Connection connection = null;
+        ArrayList list = new ArrayList();
+        String sql = "Select id from family where barangayid = ?";
+
+        try {
+            int barangayID = BarangayDB.getBarangayID(barangayName, date);
+
+            connection = connectionPool.getConnection();
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setInt(1, barangayID);
+
+            ResultSet rs = ps.executeQuery();
+            while(rs.next()){
+                int id = rs.getInt("id");
+                FamilyInfo familyInfo = FamilyDB.getFamilyData(id);
+                FamilyPoverty familyPoverty = PovertyDB.getFamilyPovertyDataByFamilyId(id);
+
+                Family family = new Family(familyInfo, familyPoverty );
+                list.add(family);
+                // notify admin user to create progressbar
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            Utility.closeConnection(connection);
+        }
+
+        return list;
+    }
+
     private boolean isFactorType(String xValue ){
             boolean isFactortType = false;
             for(FactorCategoryParameter c : FactorCategoryParameter.values()){
@@ -500,25 +532,8 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                         System.out.println("getPovertyPopulationPreparedStatement");
                             ps = getPovertyPopulationPreparedStatement(connection, params, method);
                     }
-        }else if (xValue.equals("resolve")){
-                 String   resql = "Select * from family where status = 'resolve' and barangayid in (Select id from barangay where  name = ? and DATE like ?)";
-
-            try {
-                ps = connection.prepareStatement(resql);
-
-                String barangayName = params.getBarangay1();
-                String date =  params.getDate() + "%";
-
-                ps.setString(1,barangayName);
-                ps.setString(2, date + "%");
-
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-
         }
         else {
-
                 try {
                     ps = connection.prepareStatement(sql);
 
