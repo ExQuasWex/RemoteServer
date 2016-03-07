@@ -193,31 +193,6 @@ public class BarangayDB {
      return  barangayName;
     }
 
-    public static boolean addResolvePopulationById(int BarangayID){
-        Connection connection = null;
-        boolean isAdded = false;
-
-        String sql = "Update barangay set resolvepopulation = resolvepopulation +1 where id = ?";
-        try {
-            connection = connectionPool.getConnection();
-
-            PreparedStatement ps = connection.prepareStatement(sql);
-            ps.setInt(1, BarangayID);
-
-          int i =   ps.executeUpdate();
-
-            if (i == 1){
-                isAdded = true;
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }finally {
-            Utility.closeConnection(connection);
-        }
-
-        return  isAdded;
-    }
 
     public static int createNewBarangay(String barangayName, LocalDate date){
         int barangayID = 0;

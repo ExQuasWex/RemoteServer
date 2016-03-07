@@ -33,12 +33,10 @@ public class HistoryDB {
             if (rs.next()){
                 int id = rs.getInt("id");
                 Date date = rs.getDate("date");
-                int adminId = rs.getInt("adminid");
+                String adminName = rs.getString("admin_name");
                 String action = rs.getString("action_taken");
                 boolean isRevoke = rs.getBoolean("revoke");
                 String revokeDesc = rs.getString("revoke_description");
-
-               String adminName =  AccountDB.getAdminNameById(adminId);
 
                 String strDate = date.toString();
 
@@ -88,4 +86,55 @@ public class HistoryDB {
         }
         return isAdded;
     }
+
+    public static int countAllhistoryInBarangay(int barangayID){
+        Connection connection = null;
+        int population = 0;
+        String sql =  "select count(H.id) as id from history H \n" +
+                "Left join family F on F.id = H.familyid\n" +
+                "where F.barangayid  in (Select id from barangay where id = ?)";
+
+        try {
+            connection = connectionPool.getConnection();
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setInt(1, barangayID);
+
+            ResultSet rs = ps.executeQuery();
+
+            rs.next();
+
+            population = rs.getInt("id");
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            Utility.closeConnection(connection);
+        }
+        return population;
+    }
+
+    public static int countFamilyResolution(int familyID){
+        int total = 0;
+        Connection connection = null;
+        String sql = "Select count(id) as id from history where familyid = ?";
+
+        try {
+            connection = connectionPool.getConnection();
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setInt(1, familyID);
+
+            ResultSet rs = ps.executeQuery();
+            rs.next();
+            total = rs.getInt("id");
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            Utility.closeConnection(connection);
+        }
+        return total;
+    }
+
+
 }

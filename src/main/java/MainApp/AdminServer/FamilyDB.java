@@ -3,6 +3,8 @@ package MainApp.AdminServer;
 import MainApp.DataBase.Database;
 import Remote.Method.FamilyModel.Family;
 import Remote.Method.FamilyModel.FamilyInfo;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import org.h2.jdbcx.JdbcConnectionPool;
 import utility.Utility;
 
@@ -194,6 +196,32 @@ public class FamilyDB {
         return familyID;
     }
 
+    public static boolean setFamilyStatus(int familyID, String status){
+        Connection connection = null;
+        boolean isUpdated = false;
+
+        String sql = "Update family set status = ? where id = ?";
+
+        try {
+            connection = connectionPool.getConnection();
+            PreparedStatement ps =connection.prepareStatement(sql);
+            ps.setString(1, status);
+            ps.setInt(2, familyID);
+
+            int i = ps.executeUpdate();
+                if (i == 1){
+                    isUpdated = true;
+                }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            Utility.closeConnection(connection);
+        }
+
+        return isUpdated;
+
+    }
     public static int countResolveofBarangay(int barangayID){
         Connection connection = null;
         int population = 0;
@@ -237,6 +265,68 @@ public class FamilyDB {
         }
         return population;
     }
+
+    public static ArrayList getAllByStatus(int barangayID, String status){
+        ArrayList observableList = new ArrayList();
+        Connection connection = null;
+        String sql = "select * from family where status = ? And barangayid  = ?";
+
+        try {
+            connection = connectionPool.getConnection();
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, status);
+            ps.setInt(2, barangayID);
+
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()){
+                FamilyInfo familyInfo = new FamilyInfo();
+
+                int famid = rs.getInt("id");
+                int barangayId = rs.getInt("barangayid");
+                int yrResidency = rs.getInt("yrresidency");
+                int numOfChildren = rs.getInt("childrenno");
+                String name = rs.getString("name");
+                String address = rs.getString("address");
+                String spouseName = rs.getString("spouse");
+                String age = rs.getString("age");
+                String maritalstatus = rs.getString("maritalstatus");
+                String gender = rs.getString("gender");
+
+                String inputDate = rs.getString("date");
+                String dateIssued = rs.getString("yrissued");
+                LocalDate dateIssue = Utility.StringToLocalDate(dateIssued);
+                String barangayName = BarangayDB.getBarangayNameById(barangayId);
+
+                familyInfo.setfamilyId(famid);
+                familyInfo.setResidencyYr(yrResidency);
+                familyInfo.setNumofChildren(numOfChildren);
+                familyInfo.setName(name);
+                familyInfo.setSpouseName(spouseName);
+                familyInfo.setAge(age);
+                familyInfo.setMaritalStatus(maritalstatus);
+                familyInfo.setGender(gender);
+
+                familyInfo.setInputDate(inputDate);
+                familyInfo.setSurveyedYr(dateIssue);
+                familyInfo.setAddress(address);
+                familyInfo.setBarangay(barangayName);
+                familyInfo.setBarangayID(barangayId);
+
+                int totalResolutions = HistoryDB.countFamilyResolution(famid);
+
+                familyInfo.setTotalResolution(totalResolutions);
+
+                observableList.add(familyInfo);
+
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            Utility.closeConnection(connection);
+        }
+        return observableList;
+    }
+
 
 
 

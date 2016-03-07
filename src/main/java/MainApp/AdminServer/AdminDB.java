@@ -21,8 +21,10 @@ import PriorityModels.PriorityType;
 import RMI.AdminInterface;
 import RMI.Constant;
 import Remote.Method.FamilyModel.Family;
+import Remote.Method.FamilyModel.FamilyHistory;
 import Remote.Method.FamilyModel.FamilyInfo;
 import Remote.Method.FamilyModel.FamilyPoverty;
+import javafx.collections.ObservableList;
 import javafx.scene.control.Alert;
 import org.h2.jdbcx.JdbcConnectionPool;
 import utility.Utility;
@@ -272,10 +274,10 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                             int barangayID = rs.getInt("id");
                              brngayName = rs.getString("name");
                              population = rs.getInt("population");
-                             System.out.println(barangayID);
 
                             int unresolvePopulation = FamilyDB.countAllUnresolveFromBarangay(barangayID);
-                            int resolvePopulation = FamilyDB.countResolveofBarangay(barangayID);
+                            int resolvePopulation =    FamilyDB.countResolveofBarangay(barangayID);
+                            int histories = HistoryDB.countAllhistoryInBarangay(barangayID);
 
                             ArrayList<Integer> idList = FamilyDB.getFamilyIdList(year, brngayName);
 
@@ -289,7 +291,6 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                                             familyInfoArrayList.add(familyInfo);
                                             familyPovertyArrayList.add(familyPoverty);
 
-
                                         }
                             PriorityLevel priorityLevel = Prioritizer.getBarangayPriorityLevel(familyPovertyArrayList);
                             PriorityType  priorityType   = Prioritizer.getBarangayPriorityType(familyPovertyArrayList);
@@ -301,6 +302,7 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                             barangayData.setPriorityType(priorityType);
                             barangayData.setUnresolvePopulation(unresolvePopulation);
                             barangayData.setResolvePopulation(resolvePopulation);
+                            barangayData.setHistories(histories);
 
                             barangayDataList.add(barangayData);
                         }
@@ -392,9 +394,10 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
     public boolean addHistoryToFamily(Family family) throws RemoteException {
 
         synchronized (historyLock){
-
+            int id = family.getFamilyinfo().getFamilyId();
             int barangayId = family.getFamilyinfo().getBarangayID();
-            boolean isAdded = BarangayDB.addResolvePopulationById(barangayId);
+
+            boolean isAdded = FamilyDB.setFamilyStatus(id, "Resolve");
             boolean isAdded2 = HistoryDB.addHistoryToFamily(family);
 
                 if (isAdded && isAdded2){
@@ -432,6 +435,41 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
         return OnlineClientArrayList.getInstance().isTheAccountOnline(username);
     }
 
+    @Override
+    public ArrayList getFamilyDataByStatus(String barangayName, String date, String status) throws RemoteException {
+        int barangayId  = BarangayDB.getBarangayID(barangayName, date);
+        return FamilyDB.getAllByStatus(barangayId, status);
+    }
+
+    @Override
+    public ArrayList getBarangayFamilyHistories(String barangayName, String date) throws RemoteException {
+        Connection connection = null;
+        String sql  = "Select id, Name from family where barangayid = ?";
+        ArrayList list = new ArrayList();
+        try {
+            connection = connectionPool.getConnection();
+            int barangayID = BarangayDB.getBarangayID(barangayName, date);
+            PreparedStatement ps =connection.prepareStatement(sql);
+            ps.setInt(1, barangayID);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()){
+                int id = rs.getInt("id");
+                String name = rs.getString("Name");
+
+                FamilyHistory familyHistory = HistoryDB.getFamilyHistoryById(id);
+                familyHistory.setFamilyName(name);
+                list.add(familyHistory);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            Utility.closeConnection(connection);
+        }
+
+        return list;
+    }
+
     private boolean isFactorType(String xValue ){
             boolean isFactortType = false;
             for(FactorCategoryParameter c : FactorCategoryParameter.values()){
@@ -449,11 +487,10 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
        boolean isFactortType =  isFactorType( xValue );
 
         String sql = "SELECT id FROM family WHERE barangayid IN\n" +
-                "(SELECT id FROM barangay WHERE name = ?  AND date LIKE ?)";
+                "(SELECT id FROM barangay WHERE name = ?  AND date LIKE ?) And status = 'Unresolve'";
 
 
         if (method != null){
-
                     if (isFactortType){
                         System.out.println("getFatortTypePreparedStatement");
 
@@ -463,6 +500,22 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                         System.out.println("getPovertyPopulationPreparedStatement");
                             ps = getPovertyPopulationPreparedStatement(connection, params, method);
                     }
+        }else if (xValue.equals("resolve")){
+                 String   resql = "Select * from family where status = 'resolve' and barangayid in (Select id from barangay where  name = ? and DATE like ?)";
+
+            try {
+                ps = connection.prepareStatement(resql);
+
+                String barangayName = params.getBarangay1();
+                String date =  params.getDate() + "%";
+
+                ps.setString(1,barangayName);
+                ps.setString(2, date + "%");
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
         }
         else {
 
