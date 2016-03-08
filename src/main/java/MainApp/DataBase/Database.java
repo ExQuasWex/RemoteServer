@@ -5,10 +5,12 @@ import ToolKit.MessageBox;
 import javafx.scene.control.Alert;
 import org.apache.commons.io.FileUtils;
 import org.h2.jdbcx.JdbcConnectionPool;
+import org.zeroturnaround.zip.ZipUtil;
 import utility.Utility;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 /**
  * Created by Didoy on 2/25/2016.
@@ -76,8 +78,17 @@ public class Database {
                             Preference.setDbPath("");
                             SynchDB();
                         }else {
+
                             File dstination = new File(path + "copy");
-                            CreateCopyOfDB(source, dstination);
+                            boolean isCopied = CreateCopyOfDB(source, dstination);
+                            if (isCopied){
+                                dstination = new File(path + "copy.zip");
+                                ZipUtil.pack(source, dstination);
+
+                            }
+
+                            // ZipUtil.unpack(source , new File("D:\\"));
+                            // ZipUtil.unexplode(dstination);
 
                             path = Preference.getDBPath();
                             System.out.println(path);
@@ -89,14 +100,17 @@ public class Database {
 
         return  isSave;
     }
-    private static  void CreateCopyOfDB(File source, File dstination){
-
+    private static  boolean CreateCopyOfDB(File source, File dstination){
+        boolean isCopied = false;
         try {
             FileUtils.copyDirectoryToDirectory(source, dstination);
+            isCopied = true;
         } catch (IOException e) {
             Utility.showConfirmationMessage("Unable to synch Database contact your database administrator", Alert.AlertType.INFORMATION);
             e.printStackTrace();
         }
+        return isCopied;
     }
+
 
 }

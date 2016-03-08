@@ -422,7 +422,7 @@
       <index name="primary_key_3b" unique="true" columns="id"/>
     </table>
     <table name="history" schema="public" catalog="pdss" type="TABLE">
-      <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
+      <column name="id" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4" def="KE5FWFQgVkFMVUUgRk9SIFBVQkxJQy5TWVNURU1fU0VRVUVOQ0VfQzEwMzU4MUFfNEVDQl80RjE0X0I2ODRfQjc5RTM5QTY5MTFBKQ==" autoIncrement="true"/>
       <column name="familyid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
       <column name="date" sqlType="date" precision="8" scale="0" nullable="false" jdbcType="91"/>
       <column name="admin_name" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>

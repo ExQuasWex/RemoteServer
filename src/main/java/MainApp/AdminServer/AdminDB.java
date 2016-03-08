@@ -13,23 +13,29 @@ import AdminModel.Report.Parent.ResponseOverviewReport;
 import AdminModel.ResponseModel.ActiveAccounts;
 import BarangayData.BarangayData;
 import DecisionSupport.Prioritizer;
+import MainApp.ClientIntefaceFactory;
 import MainApp.ClientSide.OnlineClientArrayList;
 import MainApp.DataBase.Database;
 import MainApp.Preferences.Preference;
 import PriorityModels.PriorityLevel;
 import PriorityModels.PriorityType;
 import RMI.AdminInterface;
+import RMI.ClientInterface;
 import RMI.Constant;
 import Remote.Method.FamilyModel.Family;
 import Remote.Method.FamilyModel.FamilyHistory;
 import Remote.Method.FamilyModel.FamilyInfo;
 import Remote.Method.FamilyModel.FamilyPoverty;
+import com.healthmarketscience.rmiio.RemoteInputStreamClient;
+import com.healthmarketscience.rmiio.RemoteInputStreamServer;
+import com.healthmarketscience.rmiio.SimpleRemoteInputStream;
+import global.OnlineClient;
 import javafx.collections.ObservableList;
 import javafx.scene.control.Alert;
 import org.h2.jdbcx.JdbcConnectionPool;
 import utility.Utility;
 
-import java.io.File;
+import java.io.*;
 import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -243,6 +249,7 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
         Connection connection = null;
         FamilyInfo familyInfo = null;
         FamilyPoverty familyPoverty = null;
+        FamilyHistory familyHistory = null;
 
         String brngayName;
         int population;
@@ -284,9 +291,10 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                                         for(Integer id: idList){
                                             familyInfo = FamilyDB.getFamilyData(id);
                                             familyPoverty = PovertyDB.getFamilyPovertyDataByFamilyId(id);
+                                            familyHistory = HistoryDB.getFamilyHistoryById(id);
 
                                             int children = familyInfo.getNumofChildren();
-                                            familyPoverty =  Prioritizer.addPriorityLevel(familyPoverty, children);
+                                            familyPoverty =  Prioritizer.addPriorityLevel(familyPoverty,familyHistory, children);
 
                                             familyInfoArrayList.add(familyInfo);
                                             familyPovertyArrayList.add(familyPoverty);
@@ -409,10 +417,26 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
         }
 
     @Override
-    public File getBackUp() throws RemoteException {
+    public boolean getBackUp(String username) throws RemoteException {
         String path = Preference.getDirectoryDBpath();
-        File file = new File(path + "copy");
-        return file;
+        System.out.println(path);
+        File file = new File(path + "copy.zip");
+
+         OnlineClient client = OnlineClientArrayList.getInstance().getClientCredential(username);
+
+            ClientInterface clientInterface = ClientIntefaceFactory.getClientInterface(client);
+        InputStream fileData = null;
+        try {
+                fileData = new FileInputStream(file);
+
+                RemoteInputStreamServer remoteFileData = new SimpleRemoteInputStream(fileData);
+                clientInterface.sendData("UrbanPoor.rar", remoteFileData);
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        return true;
     }
 
     @Override
@@ -444,7 +468,9 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
     @Override
     public ArrayList getBarangayFamilyHistories(String barangayName, String date) throws RemoteException {
         Connection connection = null;
-        String sql  = "Select id, Name from family where barangayid = ?";
+        String sql  = "SELECT F.id, F.Name FROM history H\n" +
+                "LEFT JOIN family F ON  F.id = H.familyid\n" +
+                "WHERE F.barangayid = ?";
         ArrayList list = new ArrayList();
         try {
             connection = connectionPool.getConnection();

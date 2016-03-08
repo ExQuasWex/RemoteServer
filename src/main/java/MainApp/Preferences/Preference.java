@@ -14,11 +14,10 @@ public class Preference {
     private static String DrctoryPath = "";
 
 
-
     private static String DBPath = "DBPATH";
     private static String dbPath = "";
 
-    static  Preferences preferences = Utility.createPreference();
+    static  Preferences preferences = Preferences.userRoot().node(String.valueOf(Preference.class));;
 
     public static String getDirectoryDBpath(){
         return preferences.get(DrctoryKeyPath, DrctoryPath);
