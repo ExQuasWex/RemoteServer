@@ -79,7 +79,7 @@ public class Server extends Application {
         Image img = null;
         SystemTray tray = SystemTray.getSystemTray();
 
-        img = Toolkit.getDefaultToolkit().getImage("src/main/java/images/server.png");
+        img = Toolkit.getDefaultToolkit().getImage("C:\\Users\\reiner\\IdeaProjects\\RemoteServer\\src\\main\\java\\images\\server.png");
 
         Dimension traySize = tray.getTrayIconSize();
         img = img.getScaledInstance(traySize.width, traySize.height, Image.SCALE_SMOOTH);

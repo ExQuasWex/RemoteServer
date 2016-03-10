@@ -60,7 +60,7 @@ public class AccountDB {
             ps.setInt(2, id);
 
             int i = ps.executeUpdate();
-            if (i == 1 && deleteStaffByAccountId(id, connection)) {
+            if (i == 1) {
                 isUpdated = true;
             }
 

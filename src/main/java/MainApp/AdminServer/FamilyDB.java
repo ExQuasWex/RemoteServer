@@ -244,15 +244,16 @@ public class FamilyDB {
         return population;
     }
 
-    public static int countAllUnresolveFromBarangay(int barangayID){
+    public static int countAllUnresolveFromBarangay(String barangayName){
         Connection connection = null;
         int population = 0;
-        String sql = "select count(DISTINCT id)as id  from family where status = 'Unresolve' And barangayid  = ?";
+        String sql = "select count(DISTINCT F.id)as id  from family F " +
+                     " Left join Barangay B on B.id = F.barangayid where F.status= 'Unresolve' and B.name = ?";
 
         try {
             connection = connectionPool.getConnection();
             PreparedStatement ps = connection.prepareStatement(sql);
-            ps.setInt(1, barangayID);
+            ps.setString(1, barangayName);
 
             ResultSet rs = ps.executeQuery();
             rs.next();

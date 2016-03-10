@@ -255,6 +255,33 @@ public class BarangayDB {
         int barangayID = 0;
         String sql = "Select id from barangay where name = ? and date like ?";
 
+        try {
+            date = Utility.subStringDate(date);
+
+            connection = connectionPool.getConnection();
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, barangayName);
+            ps.setString(2, date + "%");
+            ResultSet rs = ps.executeQuery();
+                    rs.next();
+                barangayID = rs.getInt("id");
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            Utility.closeConnection(connection);
+        }
+        return barangayID;
+    }
+
+
+    public static ArrayList getBarangayIDList(String barangayName, String date){
+        Connection connection = null;
+        int barangayID = 0;
+        ArrayList idList = new ArrayList();
+        String sql = "Select id from barangay where name = ? and date like ?";
+
             try {
                 date = Utility.subStringDate(date);
 
@@ -263,19 +290,19 @@ public class BarangayDB {
                 PreparedStatement ps = connection.prepareStatement(sql);
                 ps.setString(1, barangayName);
                 ps.setString(2, date + "%");
-
                 ResultSet rs = ps.executeQuery();
 
-                rs.next();
-
-                barangayID = rs.getInt("id");
+                while (rs.next()){
+                    barangayID = rs.getInt("id");
+                    idList.add(barangayID);
+                }
 
             } catch (SQLException e) {
                 e.printStackTrace();
             }finally {
                 Utility.closeConnection(connection);
             }
-        return barangayID;
+        return idList;
     }
 
     public static int getBarangayID(int familyID){
@@ -348,13 +375,15 @@ public class BarangayDB {
 
             if (existing){
 
-                barangayID = getBarangayID(barangayName, date.toString());
+               ArrayList idList = getBarangayIDList(barangayName, date.toString());
+                for (Object id : idList){
 
-                //update the barangay
-                PreparedStatement updatePs = connection.prepareStatement(updateBarangay,Statement.RETURN_GENERATED_KEYS);
-                updatePs.setInt(1,barangayID);
-                updatePs.executeUpdate();
+                    //update the barangay
+                    PreparedStatement updatePs = connection.prepareStatement(updateBarangay,Statement.RETURN_GENERATED_KEYS);
+                    updatePs.setInt(1, (Integer) id);
+                    updatePs.executeUpdate();
 
+                }
             }else {
                 // insert new  barangay record
                 Logger.Log("createNewBarangay ");

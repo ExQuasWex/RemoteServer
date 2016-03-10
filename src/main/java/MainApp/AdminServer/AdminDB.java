@@ -253,19 +253,15 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
         String brngayName;
         int population;
-        int resolvepopulation ;
 
         ArrayList<FamilyInfo> familyInfoArrayList= new ArrayList<FamilyInfo>();
         ArrayList<FamilyPoverty> familyPovertyArrayList= new ArrayList<FamilyPoverty>();
 
         ArrayList<BarangayData> barangayDataList = new ArrayList<BarangayData>();
 
-            String sql = "SELECT id, \n" +
-                    "  name,\n" +
-                    "  sum(DISTINCT  population) as population \n" +
+            String sql = "SELECT sum(population) as population, name\n" +
                     "FROM barangay\n" +
-                    "\n" +
-                    "WHERE date LIKE ? GROUP BY name";
+                    "where date like ? GROUP BY name";
 
                 synchronized (lock1){
 
@@ -278,11 +274,13 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                         ResultSet rs = ps.executeQuery();
 
                         while (rs.next()){
-                            int barangayID = rs.getInt("id");
+
                              brngayName = rs.getString("name");
                              population = rs.getInt("population");
 
-                            int unresolvePopulation = FamilyDB.countAllUnresolveFromBarangay(barangayID);
+                            int barangayID = BarangayDB.getBarangayID(brngayName,Utility.getCurrentYear());
+
+                            int unresolvePopulation = FamilyDB.countAllUnresolveFromBarangay( brngayName);
                             int resolvePopulation =    FamilyDB.countResolveofBarangay(barangayID);
                             int histories = HistoryDB.countAllhistoryInBarangay(barangayID);
 
@@ -500,14 +498,13 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
     public ArrayList viewAllPeople(String barangayName, String date) throws RemoteException {
         Connection connection = null;
         ArrayList list = new ArrayList();
-        String sql = "Select id from family where barangayid = ?";
+        String sql = "Select id from family where barangayid in (select id from barangay where name = ?) ";
 
         try {
-            int barangayID = BarangayDB.getBarangayID(barangayName, date);
 
             connection = connectionPool.getConnection();
             PreparedStatement ps = connection.prepareStatement(sql);
-            ps.setInt(1, barangayID);
+            ps.setString(1, barangayName);
 
             ResultSet rs = ps.executeQuery();
             while(rs.next()){
@@ -559,6 +556,7 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                             ps = getPovertyPopulationPreparedStatement(connection, params, method);
                     }
         }
+
         else {
                 try {
                     ps = connection.prepareStatement(sql);
