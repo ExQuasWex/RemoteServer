@@ -415,27 +415,29 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
         }
 
     @Override
-    public boolean getBackUp(String username) throws RemoteException {
+    public void getBackUp(String username) throws RemoteException {
         String path = Preference.getDirectoryDBpath();
-        System.out.println(path);
         File file = new File(path + "copy.zip");
 
-         OnlineClient client = OnlineClientArrayList.getInstance().getClientCredential(username);
 
-            ClientInterface clientInterface = ClientIntefaceFactory.getClientInterface(client);
         InputStream fileData = null;
         try {
+            System.out.println("Sending data");
+
+                OnlineClient client = OnlineClientArrayList.getInstance().getClientCredential(username);
+
+                ClientInterface clientInterface = ClientIntefaceFactory.getClientInterface(client);
+
                 fileData = new FileInputStream(file);
 
                 RemoteInputStreamServer remoteFileData = new SimpleRemoteInputStream(fileData);
-                clientInterface.sendData("UrbanPoor.rar", remoteFileData);
+                clientInterface.sendData("UrbanPoor.zip", remoteFileData);
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
 
-        return true;
-    }
+        }
 
     @Override
     public boolean updateAccountStatus(int id, AccountStatus status) throws RemoteException {
