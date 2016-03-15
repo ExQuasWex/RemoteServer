@@ -37,6 +37,7 @@ import utility.Utility;
 
 import java.io.*;
 import java.rmi.AlreadyBoundException;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -259,9 +260,10 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
         ArrayList<BarangayData> barangayDataList = new ArrayList<BarangayData>();
 
-            String sql = "SELECT sum(population) as population, name\n" +
-                    "FROM barangay\n" +
-                    "where date like ? GROUP BY name";
+            String sql = "SELECT count(  F.id) AS population, B.name\n" +
+                    "   FROM Family F\n" +
+                    "   LEFT JOIN barangay B ON B.id = F.barangayid\n" +
+                    "     WHERE B.date LIKE ? GROUP BY B.name ";
 
                 synchronized (lock1){
 
@@ -280,8 +282,8 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
                             int barangayID = BarangayDB.getBarangayID(brngayName,Utility.getCurrentYear());
 
-                            int unresolvePopulation = FamilyDB.countAllUnresolveFromBarangay( brngayName);
-                            int resolvePopulation =    FamilyDB.countResolveofBarangay(barangayID);
+                            int unresolvePopulation = FamilyDB.countByFamilyStatusFromBarangay(brngayName, Utility.getCurrentYear(), "Unresolve");
+                            int resolvePopulation =    FamilyDB.countByFamilyStatusFromBarangay(brngayName, Utility.getCurrentYear(), "Resolve");
                             int histories = HistoryDB.countAllhistoryInBarangay(barangayID);
 
                             ArrayList<Integer> idList = FamilyDB.getFamilyIdList(year, brngayName);
@@ -421,23 +423,23 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
 
         InputStream fileData = null;
-        try {
-            System.out.println("Sending data");
 
-                OnlineClient client = OnlineClientArrayList.getInstance().getClientCredential(username);
+        OnlineClient client = OnlineClientArrayList.getInstance().getClientCredential(username);
 
-                ClientInterface clientInterface = ClientIntefaceFactory.getClientInterface(client);
+        String host = client.getIpaddress();
+        int port = client.getPort();
 
-                fileData = new FileInputStream(file);
+        ClientInterface clientInterface = ClientIntefaceFactory.getClientInterface(client, host, port);
+        System.out.println("sending files to client");
+        clientInterface.imAlive();
+//                fileData = new FileInputStream(file);
+//                RemoteInputStreamServer remoteFileData = new SimpleRemoteInputStream(fileData);
+//                 System.out.println("Sending data");
+//
+//
+        //clientInterface.sendData("UrbanPoor.zip", remoteFileData);
 
-                RemoteInputStreamServer remoteFileData = new SimpleRemoteInputStream(fileData);
-                clientInterface.sendData("UrbanPoor.zip", remoteFileData);
-
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        }
+    }
 
     @Override
     public boolean updateAccountStatus(int id, AccountStatus status) throws RemoteException {
@@ -500,13 +502,15 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
     public ArrayList viewAllPeople(String barangayName, String date) throws RemoteException {
         Connection connection = null;
         ArrayList list = new ArrayList();
-        String sql = "Select id from family where barangayid in (select id from barangay where name = ?) ";
+        String sql = "Select id from family where barangayid in (select id from barangay where name = ? and date like ?) ";
 
         try {
 
             connection = connectionPool.getConnection();
             PreparedStatement ps = connection.prepareStatement(sql);
             ps.setString(1, barangayName);
+            ps.setString(2, Utility.getCurrentYear() + "%");
+
 
             ResultSet rs = ps.executeQuery();
             while(rs.next()){
@@ -544,7 +548,7 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
        boolean isFactortType =  isFactorType( xValue );
 
         String sql = "SELECT id FROM family WHERE barangayid IN\n" +
-                "(SELECT id FROM barangay WHERE name = ?  AND date LIKE ?) And status = 'Unresolve'";
+                "(SELECT id FROM barangay WHERE name = ?  AND date LIKE ?)";
 
 
         if (method != null){
@@ -561,6 +565,8 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
 
         else {
                 try {
+                    System.out.println("VIEW PEOPLE");
+
                     ps = connection.prepareStatement(sql);
 
                     String barangayName = params.getBarangay1();

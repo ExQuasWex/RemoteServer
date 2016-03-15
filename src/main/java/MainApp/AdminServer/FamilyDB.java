@@ -39,6 +39,8 @@ public class FamilyDB {
             int yrResidency = rs.getInt("yrresidency");
             int numOfChildren = rs.getInt("childrenno");
             String name = rs.getString("name");
+            String lastName = rs.getString("lastname");
+            String middleName = rs.getString("middle");
             String address = rs.getString("address");
             String spouseName = rs.getString("spouse");
             String age = rs.getString("age");
@@ -51,14 +53,15 @@ public class FamilyDB {
             String barangayName = BarangayDB.getBarangayNameById(barangayId);
 
             familyInfo =
-                    new FamilyInfo(famid, yrResidency, numOfChildren, name,
-                            spouseName, age, maritalstatus, gender);
+                    new FamilyInfo(yrResidency, famid, numOfChildren, name, lastName, middleName,
+                            spouseName, maritalstatus, age, gender);
 
             familyInfo.setInputDate(inputDate);
             familyInfo.setSurveyedYr(dateIssue);
             familyInfo.setAddress(address);
             familyInfo.setBarangay(barangayName);
             familyInfo.setBarangayID(barangayId);
+
         } catch (SQLException e) {
             e.printStackTrace();
         }finally {
@@ -104,6 +107,8 @@ public class FamilyDB {
                 "barangayid = ?," +
                 "date = ?," +
                 "name = ?," +
+                "lastname = ?," +
+                "middle = ?," +
                 "maritalstatus = ?," +
                 "age = ?," +
                 "spouse = ?," +
@@ -123,16 +128,18 @@ public class FamilyDB {
             ps.setInt(1,    barangayiD);
             ps.setString(2, familyInfo.getInputDate());
             ps.setString(3, familyInfo.getName());
-            ps.setString(4, familyInfo.getMaritalStatus());
-            ps.setString(5, familyInfo.getAge());
-            ps.setString(6, familyInfo.getSpouseName());
-            ps.setString(7, familyInfo.getAddress());
-            ps.setInt(8,    numofChildren);
-            ps.setString(9, familyInfo.getGender());
-            ps.setInt(10,   familyInfo.getResidencyYr());
-            ps.setString(11,familyInfo.getSurveyedYr().toString());
-            ps.setInt(12, familyInfo.getClientID());
-            ps.setInt(13,   familyInfo.familyId());
+            ps.setString(4, familyInfo.getLastname());
+            ps.setString(5, familyInfo.getMiddlename());
+            ps.setString(6, familyInfo.getMaritalStatus());
+            ps.setString(7, familyInfo.getAge());
+            ps.setString(8, familyInfo.getSpouseName());
+            ps.setString(9, familyInfo.getAddress());
+            ps.setInt(10,    numofChildren);
+            ps.setString(11, familyInfo.getGender());
+            ps.setInt(12,   familyInfo.getResidencyYr());
+            ps.setString(13,familyInfo.getSurveyedYr().toString());
+            ps.setInt(14, familyInfo.getClientID());
+            ps.setInt(15,   familyInfo.familyId());
 
             ps.executeUpdate();
 
@@ -140,46 +147,31 @@ public class FamilyDB {
             e.printStackTrace();
         }
 
-    }
-
-    public static void updateClientIpAddress(String ipaddress, int accountID, Connection connection){
-
-        String sql = "Update generatedport set ipaddress = ?where accountid = ?";
-
-        try {
-
-            PreparedStatement ps = connection.prepareStatement(sql);
-            ps.setString(1, ipaddress);
-            ps.setInt(2, accountID);
-
-            ps.executeUpdate();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
     }
 
     public static int  addFamily(FamilyInfo familyInfo, int barangayID, Connection connection){
         int familyID = 0;
 
-        String addFamilySql = "Insert INTO family (barangayid,date,name,maritalstatus,age,spouse," +
+        String addFamilySql = "Insert INTO family (barangayid,date,name, lastname, middle, maritalstatus,age,spouse," +
                 "address,childrenno,gender,yrresidency,yrissued,clientid)" +
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         try {
             int numofChildren = familyInfo.getNumofChildren();
             PreparedStatement ps = connection.prepareStatement(addFamilySql, Statement.RETURN_GENERATED_KEYS);
             ps.setInt(1, barangayID);
             ps.setString(2,familyInfo.getInputDate());
             ps.setString(3,familyInfo.getName());
-            ps.setString(4,familyInfo.getMaritalStatus());
-            ps.setString(5,familyInfo.getAge());
-            ps.setString(6,familyInfo.getSpouseName());
-            ps.setString(7,familyInfo.getAddress());
-            ps.setInt(8,numofChildren);
-            ps.setString(9,familyInfo.getGender());
-            ps.setInt(10, familyInfo.getResidencyYr());
-            ps.setString(11,familyInfo.getSurveyedYr().toString());
-            ps.setInt(12,familyInfo.getClientID());
+            ps.setString(4,familyInfo.getLastname());
+            ps.setString(5,familyInfo.getMiddlename());
+            ps.setString(6,familyInfo.getMaritalStatus());
+            ps.setString(7,familyInfo.getAge());
+            ps.setString(8,familyInfo.getSpouseName());
+            ps.setString(9,familyInfo.getAddress());
+            ps.setInt(10,numofChildren);
+            ps.setString(11,familyInfo.getGender());
+            ps.setInt(12, familyInfo.getResidencyYr());
+            ps.setString(13,familyInfo.getSurveyedYr().toString());
+            ps.setInt(14,familyInfo.getClientID());
 
             int row = ps.executeUpdate();
             ResultSet rs = ps.getGeneratedKeys();
@@ -222,38 +214,19 @@ public class FamilyDB {
         return isUpdated;
 
     }
-    public static int countResolveofBarangay(int barangayID){
-        Connection connection = null;
-        int population = 0;
-        String sql = "select count(DISTINCT id)as id  from family where status = 'Resolve' And barangayid  = ?";
 
-        try {
-            connection = connectionPool.getConnection();
-            PreparedStatement ps = connection.prepareStatement(sql);
-            ps.setInt(1, barangayID);
-
-            ResultSet rs = ps.executeQuery();
-            rs.next();
-            population = rs.getInt("id");
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }finally {
-            Utility.closeConnection(connection);
-        }
-        return population;
-    }
-
-    public static int countAllUnresolveFromBarangay(String barangayName){
+    public static int countByFamilyStatusFromBarangay(String barangayName, String date, String status){
         Connection connection = null;
         int population = 0;
         String sql = "select count(DISTINCT F.id)as id  from family F " +
-                     " Left join Barangay B on B.id = F.barangayid where F.status= 'Unresolve' and B.name = ?";
+                     " Left join Barangay B on B.id = F.barangayid where F.status= ? and B.name = ? and B.date like ? ";
 
         try {
             connection = connectionPool.getConnection();
             PreparedStatement ps = connection.prepareStatement(sql);
-            ps.setString(1, barangayName);
+            ps.setString(1, status);
+            ps.setString(2, barangayName);
+            ps.setString(3, date + "%");
 
             ResultSet rs = ps.executeQuery();
             rs.next();

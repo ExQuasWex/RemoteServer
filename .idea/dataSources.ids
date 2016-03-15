@@ -398,6 +398,8 @@
       <column name="barangayid" sqlType="integer" precision="10" scale="0" nullable="false" jdbcType="4"/>
       <column name="date" sqlType="varchar" precision="50" scale="0" nullable="true" jdbcType="12"/>
       <column name="name" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>
+      <column name="lastname" sqlType="varchar" precision="50" scale="0" nullable="true" jdbcType="12"/>
+      <column name="middle" sqlType="varchar" precision="50" scale="0" nullable="true" jdbcType="12"/>
       <column name="maritalstatus" sqlType="varchar" precision="50" scale="0" nullable="true" jdbcType="12"/>
       <column name="age" sqlType="varchar" precision="50" scale="0" nullable="true" jdbcType="12"/>
       <column name="spouse" sqlType="varchar" precision="50" scale="0" nullable="false" jdbcType="12"/>

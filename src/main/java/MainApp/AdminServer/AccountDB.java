@@ -272,6 +272,25 @@ public class AccountDB {
     }
 
 
+    public static void updateClientIpAddress(String ipaddress, int accountID, Connection connection){
+
+        String sql = "Update generatedport set ipaddress = ?where accountid = ?";
+
+        try {
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, ipaddress);
+            ps.setInt(2, accountID);
+
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
 
 
 

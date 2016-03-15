@@ -156,8 +156,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                             OnlineClient onlineClient = new OnlineClient(username, ip, port, remoteID);
 
                             onlineClientArrayList.add(onlineClient);
-
                         }
+                        onlineClientArrayList.monitorOnlines();
 
                     } catch (SQLException e) {
                         e.printStackTrace();
@@ -268,7 +268,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                             e.printStackTrace();
                         }
 
-
             if (searchList.isEmpty()){
                 System.out.println("empty at searchlist");
                 searchList.clear();
@@ -281,6 +280,55 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         return searchList;
     }
 
+    private ArrayList searchSameName(String name){
+        Connection connection = null;
+        String barangayName;
+        ArrayList<Family> list = new ArrayList();
+        String sql = "Select id from family where Lower (name) like ?";
+        String sqlgetbarangay = "Select barangayid from family where id = ?";
+
+        try {
+            connection = connectionPool.getConnection();
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1,  "%" + name.toLowerCase() + "%");
+            ResultSet rs = ps.executeQuery();
+
+                    while (rs.next()){
+                        int id = rs.getInt(1);
+
+                        FamilyInfo familyinfo = FamilyDB.getFamilyData(id);
+                        FamilyPoverty familyPoverty = povertyDB.getFamilyPovertyDataByFamilyId(id);
+                        FamilyHistory familyHistory = HistoryDB.getFamilyHistoryById(id);
+
+
+                        PreparedStatement brgyps = connection.prepareStatement(sqlgetbarangay);
+                        brgyps.setInt(1,id);
+
+                        ResultSet brgyRs = brgyps.executeQuery();
+
+                                if (brgyRs.next()){
+                                    int brgayID = brgyRs.getInt(1);
+                                    barangayName = BarangayDB.getBarangayNameById(brgayID);
+                                    familyinfo.setBarangay(barangayName);
+                                }
+
+                        Family fam = new Family(familyinfo, familyPoverty, familyHistory);
+
+                        list.add(fam);
+
+                        // notify use for loadbar
+                    }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            Utility.closeConnection(connection);
+        }
+
+        return  list;
+    }
+
     // SYNCHRONIZATION DEPEND ON SEARCHLIST
     private ArrayList getSearchList(String name){
         Connection connection = null;
@@ -288,7 +336,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         ArrayList list  = new ArrayList();
         String barangayName;
 
-        String sqlfamily  = "SELECT id from family where (Lower(name) like ? or Lower (spouse) like ?)  ";
+        String sqlfamily  = "SELECT id from family where (Lower(name) like ? or Lower (spouse) like ? or Lower (lastname) like ? or Lower (middle) like ?)  ";
         String sqlgetbarangay = "Select barangayid from family where id = ?";
 
         try {
@@ -299,6 +347,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
             PreparedStatement ps = connection.prepareStatement(sqlfamily);
             ps.setString(1, "%" + name.toLowerCase() + "%");
             ps.setString(2, "%" + name.toLowerCase()+  "%");
+            ps.setString(3, "%" + name.toLowerCase()+  "%");
+            ps.setString(4, "%" + name.toLowerCase()+  "%");
 
             ResultSet rs = ps.executeQuery();
 
@@ -739,13 +789,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         return BarangayDB.addToBarangay(family, connection);
     }
 
-    private int  addFamily(FamilyInfo familyInfo, int barangayID, Connection connection){
-        return FamilyDB.addFamily(familyInfo, barangayID, connection);
-    }
-
-    public boolean addPovertyFactors(FamilyPoverty familyPoverty, int familyId, Connection connection){
-        return PovertyDB.addPovertyFactors(familyPoverty, familyId, connection);
-    }
 
     /*
     notify client that the family he tried to input
@@ -758,9 +801,12 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
         OnlineClient client = onlineClientArrayList.getClientCredential(username);
 
                 try {
-                          ArrayList commonNameList = searchedList(family.getFamilyinfo().getName());
+                    String host = client.getIpaddress();
+                    int port = client.getPort();
 
-                          ClientInterface clientInterface = ClientIntefaceFactory.getClientInterface(client);
+                          ArrayList commonNameList = searchSameName(family.getFamilyinfo().getName());
+
+                          ClientInterface clientInterface = ClientIntefaceFactory.getClientInterface(client,host, port);
 
                           System.out.println("family name from notif : " + family.getFamilyinfo().getName()) ;
                           clientInterface.notifyClient(commonNameList);
@@ -828,7 +874,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                 remotePort = rs.getInt("remoteport");
                 remoteID = rs.getString("remoteid");
 
-                FamilyDB.updateClientIpAddress(ipAddress, accountID, connection);
+                AccountDB.updateClientIpAddress(ipAddress, accountID, connection);
             }else {
                 remotePort = generatePort();
                 remoteID = generateRemoteID();
@@ -1003,7 +1049,10 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
         int size = getClientEntryMaxSize(ClientID);
 
-        ClientInterface clientInterface = ClientIntefaceFactory.getClientInterface(client);
+        String host = client.getIpaddress();
+        int port = client.getPort();
+
+        ClientInterface clientInterface = ClientIntefaceFactory.getClientInterface(client, host, port);
         clientInterface.setClientEntriesMaxSize(size);
 
         String sql = "Select id, name, date from family where clientid = ?";
