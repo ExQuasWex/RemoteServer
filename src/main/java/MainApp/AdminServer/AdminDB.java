@@ -159,7 +159,7 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
              totalPovertyYearTwo = barangayData.getPovertyCompareOverVieData(params.getMaxYear());
 
              factorList1 = povertyFactorsData.getOverViewFactors(String.valueOf(params.getYear()));
-             factorList2 = povertyFactorsData.getOverViewFactors(String.valueOf(params.getYear()));
+             factorList2 = povertyFactorsData.getOverViewFactors(String.valueOf(params.getMaxYear()));
 
         compareOverview =  new ResponseCompareOverview(totalPovertyYearOne, totalPovertyYearTwo, factorList1, factorList2 );
 

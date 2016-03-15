@@ -42,8 +42,10 @@ public class BarangayDB {
                 "FROM barangay WHERE date LIKE ? ";
 
         // compare specific sql
-        povertyPopulationOfBarangay = "SELECT  sum(population) as population\n" +
-                "FROM barangay WHERE date LIKE ? and name = ?";
+        povertyPopulationOfBarangay = "SELECT count(Distinct  F.id) as population, B.name\n" +
+                "                                            FROM Family F\n" +
+                "                                              LEFT JOIN barangay B on B.id = F.barangayid\n" +
+                "                                            where B.date like ? and B.name = ? GROUP BY B.name";
 
     }
 
