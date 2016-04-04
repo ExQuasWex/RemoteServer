@@ -84,7 +84,7 @@ public class Database {
                             boolean isCopied = CreateCopyOfDB(source, dstination);
                             if (isCopied){
                                 dstination = new File(path + "copy.zip");
-                                ZipUtil.pack(source, dstination);
+                                       ZipUtil.pack(source, dstination);
 
                             }
 

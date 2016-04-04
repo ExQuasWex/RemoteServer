@@ -300,8 +300,11 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
                                             familyPovertyArrayList.add(familyPoverty);
 
                                         }
+
                             PriorityLevel priorityLevel = Prioritizer.getBarangayPriorityLevel(familyPovertyArrayList);
                             PriorityType  priorityType   = Prioritizer.getBarangayPriorityType(familyPovertyArrayList);
+
+                            familyPovertyArrayList.clear();
 
                             BarangayData barangayData = new BarangayData();
                             barangayData.setBarangayName(brngayName);
@@ -548,7 +551,7 @@ public class AdminDB extends UnicastRemoteObject implements AdminInterface {
        boolean isFactortType =  isFactorType( xValue );
 
         String sql = "SELECT id FROM family WHERE barangayid IN\n" +
-                "(SELECT id FROM barangay WHERE name = ?  AND date LIKE ?)";
+                "(SELECT id FROM barangay WHERE name = ?  AND date LIKE ?) and status = 'Unresolve'";
 
 
         if (method != null){

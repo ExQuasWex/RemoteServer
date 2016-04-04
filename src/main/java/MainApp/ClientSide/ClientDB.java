@@ -122,7 +122,7 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
             StartUp();
 
-            reg = LocateRegistry.createRegistry(Constant.Remote_port);
+            reg = LocateRegistry.createRegistry( Constant.Remote_port);
             reg.bind(Constant.Remote_ID,this);
 
         } catch (RemoteException e) {
@@ -523,7 +523,6 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
                                                                    // System.out.println(client.getUsername()+ "=="+ username);
                                                                    //System.out.println(status);
 
-
                                                                             if (client.getUsername().equals(username) && status.equals("Online")){
 
                                                                                 // indicates that client is already online
@@ -806,9 +805,8 @@ public class ClientDB extends UnicastRemoteObject implements RemoteMethods  {
 
                           ArrayList commonNameList = searchSameName(family.getFamilyinfo().getName());
 
-                          ClientInterface clientInterface = ClientIntefaceFactory.getClientInterface(client,host, port);
+                          ClientInterface clientInterface = ClientIntefaceFactory.getClientInterface(client, host, port);
 
-                          System.out.println("family name from notif : " + family.getFamilyinfo().getName()) ;
                           clientInterface.notifyClient(commonNameList);
 
                 } catch (RemoteException e) {

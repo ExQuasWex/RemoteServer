@@ -33,9 +33,10 @@ public class BarangayDB {
     public BarangayDB() {
 
         // overview sql
-        povertyPopulationOfeveryBarangay = "SELECT name,  sum(population) as population\n" +
-                "FROM barangay\n" +
-                "WHERE date LIKE ? GROUP BY name \n";
+        povertyPopulationOfeveryBarangay = "SELECT count(Distinct  F.id) as population, B.name\n" +
+                "                                            FROM Family F\n" +
+                "                                              LEFT JOIN barangay B on B.id = F.barangayid\n" +
+                "                                            where B.date like ? GROUP BY B.name";
 
         // compare overview sql
         totalPovertyYearPopulationSql = "SELECT  sum(population) as population\n" +
@@ -231,9 +232,9 @@ public class BarangayDB {
         boolean exist = false;
 
         String chckBarangay = "Select id from barangay where name = ? and date like  ?";
+        date = Utility.subStringDate(date);
 
         try {
-            date = Utility.subStringDate(date);
 
             PreparedStatement chckPs = connection.prepareStatement(chckBarangay,Statement.RETURN_GENERATED_KEYS);
             chckPs.setString(1, barangayName);
@@ -379,7 +380,7 @@ public class BarangayDB {
 
                ArrayList idList = getBarangayIDList(barangayName, date.toString());
                 for (Object id : idList){
-
+                    barangayID = (int) id;
                     //update the barangay
                     PreparedStatement updatePs = connection.prepareStatement(updateBarangay,Statement.RETURN_GENERATED_KEYS);
                     updatePs.setInt(1, (Integer) id);
@@ -401,7 +402,6 @@ public class BarangayDB {
         }
         return isSave;
     }
-
 
 
 }
